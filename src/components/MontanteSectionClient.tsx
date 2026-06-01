@@ -2,17 +2,22 @@
 
 import React, { useState } from "react";
 
+interface MontanteMatch {
+    home_team: string;
+    away_team: string;
+    prediction: string;
+    cote: number;
+    commence_at?: string;
+}
+
 interface MontanteRow {
     id: number;
     jour_actuel: number;
     mise_actuelle: number;
-    gain_potentiel: number;
-    prono_selectionne: string | null;
-    home_team: string | null;
-    away_team: string | null;
-    cote: number | null;
-    commence_at: string | null;
+    cote_cible: number;
     statut: string;
+    matchs: MontanteMatch[] | null;
+    created_at: string;
 }
 
 interface Props {
@@ -25,7 +30,10 @@ export default function MontanteSectionClient({ montante, historique }: Props) {
     const totalJours = 17;
     const progression = Math.round((montante.jour_actuel / totalJours) * 100);
     const miseFormatee = montante.mise_actuelle.toLocaleString("fr-FR");
-    const gainFormate = montante.gain_potentiel.toLocaleString("fr-FR");
+    const gainPotentiel = Math.round(montante.mise_actuelle * montante.cote_cible);
+    const gainFormate = gainPotentiel.toLocaleString("fr-FR");
+    const matchs = (montante.matchs || []) as MontanteMatch[];
+    const match = matchs[0] || null;
 
     return (
         <>
@@ -42,7 +50,7 @@ export default function MontanteSectionClient({ montante, historique }: Props) {
                                 🔥 Défi Montante
                             </span>
                             <span className="px-2.5 py-1 bg-white/10 backdrop-blur-sm border border-white/20 text-white/80 text-[10px] sm:text-xs font-bold rounded-full uppercase">
-                                {montante.statut === "en_cours" ? "En cours" : montante.statut === "gagne" ? "Réussi" : "Échoué"}
+                                {montante.statut === "EN_COURS" ? "En cours" : montante.statut === "GAGNE" ? "Réussi" : "Échoué"}
                             </span>
                         </div>
                         <div className="flex items-center gap-3">
@@ -105,31 +113,37 @@ export default function MontanteSectionClient({ montante, historique }: Props) {
                     </div>
 
                     {/* Match du jour */}
-                    {montante.prono_selectionne && (
+                    {match && (
                         <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-3 sm:p-4 border border-white/10">
                             <p className="text-[9px] sm:text-[10px] text-orange-400/80 uppercase tracking-widest font-bold mb-2.5">🤖 Prono sélectionné par le Robot</p>
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                                 <div className="min-w-0">
                                     <p className="text-base sm:text-lg font-black text-white truncate">
-                                        {montante.home_team} <span className="text-white/40 font-normal text-xs sm:text-sm">vs</span> <span className="truncate">{montante.away_team}</span>
+                                        {match.home_team} <span className="text-white/40 font-normal text-xs sm:text-sm">vs</span> {match.away_team}
                                     </p>
-                                    <p className="text-xs sm:text-sm text-white/60 font-medium mt-0.5 truncate">{montante.prono_selectionne}</p>
+                                    <p className="text-xs sm:text-sm text-white/60 font-medium mt-0.5 truncate">{match.prediction}</p>
                                 </div>
                                 <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                                    {montante.commence_at && (
+                                    {match.commence_at && (
                                         <span className="text-[10px] sm:text-xs text-white/40 font-mono">
-                                            {new Date(montante.commence_at).toLocaleTimeString("fr-FR", { timeZone: "UTC", hour: "2-digit", minute: "2-digit" })}
+                                            {new Date(match.commence_at).toLocaleTimeString("fr-FR", { timeZone: "UTC", hour: "2-digit", minute: "2-digit" })}
                                         </span>
                                     )}
-                                    {montante.cote && (
-                                        <span className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 border border-emerald-500/30 text-emerald-400 text-xs sm:text-sm font-black rounded-full">
-                                            @ {montante.cote.toFixed(2)}
-                                        </span>
-                                    )}
+                                    <span className="px-2.5 py-1 sm:px-3 sm:py-1.5 bg-gradient-to-r from-emerald-500/20 to-emerald-600/20 border border-emerald-500/30 text-emerald-400 text-xs sm:text-sm font-black rounded-full">
+                                        @ {match.cote.toFixed(2)}
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     )}
+
+                    {/* Cote cible */}
+                    <div className="mt-4 flex items-center gap-2 text-white/40 text-[10px] sm:text-xs">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Cote cible : {montante.cote_cible.toFixed(2)} max</span>
+                    </div>
                 </div>
             </div>
 
@@ -138,7 +152,6 @@ export default function MontanteSectionClient({ montante, historique }: Props) {
                 <div className="fixed inset-0 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true">
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowHistory(false)} />
                     <div className="relative bg-white rounded-3xl p-5 sm:p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-[0_25px_60px_rgba(0,0,0,0.2)]">
-                        {/* En-tête */}
                         <div className="flex items-start justify-between mb-5 border-b border-slate-100 pb-4">
                             <div>
                                 <h3 className="text-lg font-black text-slate-950">Historique du défi</h3>
@@ -155,12 +168,15 @@ export default function MontanteSectionClient({ montante, historique }: Props) {
                             </button>
                         </div>
 
-                        {/* Liste des jours */}
                         <div className="space-y-3">
                             {historique.map((row) => {
-                                const isWin = row.statut === "gagne";
-                                const isLose = row.statut === "perdu";
+                                const isWin = row.statut === "GAGNE";
+                                const isLose = row.statut === "PERDU";
                                 const isCurrent = row.id === montante.id;
+                                const rowMatchs = (row.matchs || []) as MontanteMatch[];
+                                const rowMatch = rowMatchs[0] || null;
+                                const matchLabel = rowMatch ? `${rowMatch.home_team} vs ${rowMatch.away_team}` : "Match à venir";
+
                                 return (
                                     <div
                                         key={row.id}
@@ -173,26 +189,22 @@ export default function MontanteSectionClient({ montante, historique }: Props) {
                                                         : "bg-slate-50 border-slate-100"
                                             }`}
                                     >
-                                        {/* Icône statut */}
-                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${isWin ? "bg-emerald-100 text-emerald-600" : isLose ? "bg-red-100 text-red-500" : "bg-slate-100 text-slate-400"
-                                            }`}>
+                                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-black shrink-0 ${isWin ? "bg-emerald-100 text-emerald-600" : isLose ? "bg-red-100 text-red-500" : "bg-slate-100 text-slate-400"}`}>
                                             {isWin ? "✅" : isLose ? "❌" : "⏳"}
                                         </div>
-                                        {/* Infos */}
                                         <div className="flex-1 min-w-0">
                                             <p className={`text-sm font-bold ${isCurrent ? "text-orange-700" : "text-slate-800"}`}>
                                                 Jour {row.jour_actuel} {isCurrent && <span className="text-orange-500 text-[10px]">(aujourd'hui)</span>}
                                             </p>
                                             <p className="text-[10px] text-slate-400 truncate mt-0.5">
-                                                {row.home_team && row.away_team ? `${row.home_team} vs ${row.away_team}` : "Match à venir"}
-                                                {row.prono_selectionne ? ` • ${row.prono_selectionne}` : ""}
+                                                {matchLabel}
+                                                {rowMatch ? ` • ${rowMatch.prediction}` : ""}
                                             </p>
                                         </div>
-                                        {/* Montants */}
                                         <div className="text-right shrink-0">
                                             <p className="text-xs font-bold text-slate-700">{row.mise_actuelle.toLocaleString("fr-FR")} FCFA</p>
                                             {isWin && (
-                                                <p className="text-[10px] font-bold text-emerald-500">+{row.gain_potentiel.toLocaleString("fr-FR")}</p>
+                                                <p className="text-[10px] font-bold text-emerald-500">+{Math.round(row.mise_actuelle * row.cote_cible).toLocaleString("fr-FR")}</p>
                                             )}
                                         </div>
                                     </div>

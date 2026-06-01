@@ -1,17 +1,22 @@
 import { supabase } from "@/lib/supabase";
 import MontanteSectionClient from "./MontanteSectionClient";
 
+interface MontanteMatch {
+    home_team: string;
+    away_team: string;
+    prediction: string;
+    cote: number;
+    commence_at?: string;
+}
+
 interface MontanteRow {
     id: number;
     jour_actuel: number;
     mise_actuelle: number;
-    gain_potentiel: number;
-    prono_selectionne: string | null;
-    home_team: string | null;
-    away_team: string | null;
-    cote: number | null;
-    commence_at: string | null;
+    cote_cible: number;
     statut: string;
+    matchs: MontanteMatch[] | null;
+    created_at: string;
 }
 
 export default async function MontanteSection() {
@@ -27,16 +32,14 @@ export default async function MontanteSection() {
 
     const montante = data as MontanteRow;
 
-    // 2. Récupérer l'historique des jours précédents (même cycle)
-    // On cherche toutes les lignes avec un id <= l'id courant
+    // 2. Récupérer l'historique du cycle actuel (depuis le dernier jour 1)
     const { data: historiqueData } = await supabase
         .from("montante_du_jour")
-        .select("id, jour_actuel, mise_actuelle, gain_potentiel, statut, prono_selectionne, home_team, away_team, cote, commence_at")
+        .select("id, jour_actuel, mise_actuelle, cote_cible, statut, matchs, created_at")
         .lte("id", montante.id)
         .order("id", { ascending: true });
 
-    // Filtrer pour ne garder que le cycle actuel (depuis le dernier jour 1)
-    const allRows = historiqueData || [];
+    const allRows = (historiqueData || []) as MontanteRow[];
     const filteredRows: MontanteRow[] = [];
     let found = false;
     for (let i = allRows.length - 1; i >= 0; i--) {
@@ -44,12 +47,11 @@ export default async function MontanteSection() {
         filteredRows.unshift(allRows[i]);
         if (allRows[i].jour_actuel === 1 && allRows[i].id !== montante.id) found = true;
     }
-    const historique = filteredRows;
 
     return (
         <MontanteSectionClient
             montante={montante}
-            historique={historique}
+            historique={filteredRows}
         />
     );
 }
