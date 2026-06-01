@@ -24,25 +24,12 @@ interface Combined {
 }
 
 export default async function HistoriquePage() {
-    // Récupère les combinés dans Supabase
+    const nowMs = Date.now();
+
+    // 1. Récupérer les combinés (sans les matchs embeds)
     const { data: combines, error } = await supabase
         .from("combines_du_jour")
-        .select(`
-      id,
-      cote_totale,
-      created_at,
-      statut,
-      matchs:matchs_du_combine!combine_id (
-        match_id,
-        sport,
-        home_team,
-        away_team,
-        prediction,
-        market,
-        cote,
-        commence_at
-      )
-    `)
+        .select("id, cote_totale, created_at, statut")
         .order("id", { ascending: false })
         .limit(50);
 
@@ -56,27 +43,77 @@ export default async function HistoriquePage() {
         );
     }
 
-    // Timestamp actuel pour la comparaison
-    const nowMs = Date.now();
+    if (!combines || combines.length === 0) {
+        return (
+            <div className="flex flex-col items-center min-h-screen bg-black p-8">
+                <div className="w-full max-w-6xl mb-8 flex items-center justify-between">
+                    <Link href="/" className="flex items-center gap-2 text-zinc-400 hover:text-neon-green transition-colors text-sm">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Retour à l'accueil
+                    </Link>
+                    <h1 className="text-3xl font-bold text-neon-green">📜 Historique des pronostics</h1>
+                    <div className="w-24" />
+                </div>
+                <div className="flex flex-col items-center justify-center mt-20 text-zinc-500">
+                    <svg className="w-16 h-16 mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <p className="text-lg">Aucun combiné disponible.</p>
+                    <Link href="/" className="mt-6 px-6 py-2 bg-neon-green text-black font-bold rounded-lg hover:bg-neon-green/80 transition-all">
+                        Voir les combinés du jour
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
-    // On mappe et on filtre côté serveur
-    const allCombines: Combined[] = (combines || [])
+    // 2. Récupérer les IDs des combinés
+    const combineIds = combines.map((c: any) => c.id);
+
+    // 3. Récupérer les matchs pour ces combinés (requête séparée)
+    const { data: allMatchs, error: matchsError } = await supabase
+        .from("matchs_du_combine")
+        .select("combine_id, match_id, sport, home_team, away_team, prediction, market, cote, commence_at")
+        .in("combine_id", combineIds);
+
+    if (matchsError) {
+        console.error("Supabase matchs fetch error:", matchsError.message);
+    }
+
+    // 4. Grouper les matchs par combine_id
+    const matchsByCombineId: Record<number, CombinedMatch[]> = {};
+    if (allMatchs) {
+        for (const m of allMatchs) {
+            const cid = m.combine_id;
+            if (!matchsByCombineId[cid]) matchsByCombineId[cid] = [];
+            matchsByCombineId[cid].push({
+                match_id: m.match_id,
+                sport: m.sport,
+                home_team: m.home_team,
+                away_team: m.away_team,
+                prediction: m.prediction,
+                market: m.market,
+                cote: m.cote,
+                commence_at: m.commence_at,
+            });
+        }
+    }
+
+    // 5. Assembler les combinés avec leurs matchs et filtrer
+    const allCombines: Combined[] = combines
         .map((c: any) => ({
             id: c.id,
             cote_totale: c.cote_totale,
             created_at: c.created_at,
-            matchs: c.matchs || [],
+            matchs: matchsByCombineId[c.id] || [],
             statut: c.statut || null,
         }))
         .filter((c: Combined) => {
-            // Si aucun match, on ignore
+            // Garder uniquement si tous les matchs sont dans le passé
             if (c.matchs.length === 0) return false;
-
-            // Vérifier si TOUS les matchs sont terminés (commence_at < maintenant)
-            return c.matchs.every((m) => {
-                const matchMs = new Date(m.commence_at).getTime();
-                return matchMs < nowMs;
-            });
+            return c.matchs.every((m) => new Date(m.commence_at).getTime() < nowMs);
         })
         .slice(0, 20);
 
