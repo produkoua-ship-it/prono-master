@@ -101,7 +101,14 @@ export default async function HistoriquePage() {
         }
     }
 
-    // 5. Assembler les combinés avec leurs matchs et filtrer
+    // 5. Assembler les combinés avec leurs matchs et filtrer pour les matchs du jour
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(startOfDay);
+    endOfDay.setDate(endOfDay.getDate() + 1);
+    const startMs = startOfDay.getTime();
+    const endMs = endOfDay.getTime();
+
     const allCombines: Combined[] = combines
         .map((c: any) => ({
             id: c.id,
@@ -111,9 +118,12 @@ export default async function HistoriquePage() {
             statut: c.statut || null,
         }))
         .filter((c: Combined) => {
-            // Garder uniquement si tous les matchs sont dans le passé
+            // Keep only if all matches are on the current day
             if (c.matchs.length === 0) return false;
-            return c.matchs.every((m) => new Date(m.commence_at).getTime() < nowMs);
+            return c.matchs.every(m => {
+                const t = new Date(m.commence_at).getTime();
+                return t >= startMs && t < endMs;
+            });
         })
         .slice(0, 20);
 
