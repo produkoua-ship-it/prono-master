@@ -27,7 +27,7 @@ export default async function Home() {
     .select(`
       id,
       cote_totale,
-        matchs:matchs_du_combine!combine_id (
+        matchs:matchs_du_combine!fk_matchs_du_combine_combines (
         match_id,
         sport,
         home_team,
