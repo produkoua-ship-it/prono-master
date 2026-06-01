@@ -1,5 +1,6 @@
 import CombineCard from "@/components/CombineCard";
 import MatchBannerSlider from "@/components/MatchBannerSlider";
+import MontanteSection from "@/components/MontanteSection";
 import { supabase } from "@/lib/supabase";
 
 export const revalidate = 0;
@@ -97,6 +98,7 @@ export default async function Home() {
       <div className="w-full max-w-6xl mb-8">
         <MatchBannerSlider matches={bannerMatches} />
       </div>
+      <MontanteSection />
       {combinesData.length === 0 ? (
         <p className="text-slate-500 font-medium">{"Aucun combiné disponible pour aujourd'hui."}</p>
       ) : (
