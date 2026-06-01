@@ -1,6 +1,5 @@
 import CombineCard from "@/components/CombineCard";
 import MatchBannerSlider from "@/components/MatchBannerSlider";
-import MontanteSection from "@/components/MontanteSection";
 import FlashBanner from "@/components/FlashBanner";
 import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/lib/supabase";
@@ -113,9 +112,6 @@ export default async function Home() {
         <MatchBannerSlider matches={bannerMatches} />
       </div>
       <FlashBanner nextMatchTime={nextMatchTime} matchLabel={nextMatchLabel} />
-      <div id="montante-section">
-        <MontanteSection />
-      </div>
       {combinesData.length === 0 ? (
         <p className="text-slate-500 font-medium">{"Aucun combiné disponible pour aujourd'hui."}</p>
       ) : (

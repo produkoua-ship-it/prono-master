@@ -44,14 +44,14 @@ export default function FlashBanner({ nextMatchTime, matchLabel }: FlashBannerPr
 
     return (
         <div className={`w-full max-w-6xl mb-4 rounded-2xl overflow-hidden ${isUrgent
-                ? "bg-gradient-to-r from-red-600 via-red-500 to-red-600 animate-pulse"
-                : "bg-gradient-to-r from-violet-600 via-purple-500 to-violet-600"
+            ? "bg-gradient-to-r from-red-600 via-red-500 to-red-600 animate-pulse"
+            : "bg-gradient-to-r from-violet-600 via-purple-500 to-violet-600"
             }`}>
             <div className="flex items-center justify-between px-4 py-2.5 sm:px-6 sm:py-3">
                 {/* Gauche : Label */}
                 <div className="flex items-center gap-2 min-w-0">
                     <span className="text-white text-xs sm:text-sm font-black tracking-wide uppercase">
-                        {isUrgent ? "⚡ URGENT" : "🔥 Vente Flash"}
+                        {isUrgent ? "⚡ URGENT" : "🎯 Coup d'envoi imminent"}
                     </span>
                     {matchLabel && (
                         <span className="hidden sm:inline text-white/70 text-xs truncate">

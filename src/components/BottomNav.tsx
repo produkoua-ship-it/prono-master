@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import MontanteModal from "./MontanteModal";
 
 export default function BottomNav() {
     const pathname = usePathname();
@@ -65,12 +66,7 @@ export default function BottomNav() {
                             return (
                                 <button
                                     key={item.label}
-                                    onClick={() => {
-                                        const el = document.getElementById("montante-section");
-                                        if (el) {
-                                            el.scrollIntoView({ behavior: "smooth" });
-                                        }
-                                    }}
+                                    onClick={() => setShowMontanteModal(true)}
                                     className="flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition-all"
                                 >
                                     <div className={`${active ? "text-purple-600" : "text-slate-400"} transition-colors`}>
@@ -88,8 +84,8 @@ export default function BottomNav() {
                                 key={item.label}
                                 href={item.href}
                                 className={`flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-xl transition-all ${active
-                                        ? "text-purple-600 bg-purple-50"
-                                        : "text-slate-400 hover:text-slate-600"
+                                    ? "text-purple-600 bg-purple-50"
+                                    : "text-slate-400 hover:text-slate-600"
                                     }`}
                             >
                                 <div className={active ? "text-purple-600" : "text-slate-400"}>
@@ -106,6 +102,9 @@ export default function BottomNav() {
 
             {/* Spacer pour éviter que le contenu soit caché sous la nav */}
             <div className="h-16 sm:hidden" />
+
+            {/* Modal Montante */}
+            <MontanteModal isOpen={showMontanteModal} onClose={() => setShowMontanteModal(false)} />
         </>
     );
 }
