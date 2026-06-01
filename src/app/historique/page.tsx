@@ -53,15 +53,15 @@ export default async function HistoriquePage() {
 
   if (!combines || combines.length === 0) {
     return (
-      <div className="flex flex-col items-center min-h-screen bg-[#F3F5F8] p-8 text-[#1A1C24]">
-        <div className="w-full max-w-6xl mb-8 flex items-center justify-between">
+      <div className="flex flex-col items-center min-h-screen bg-[#F3F5F8] p-4 sm:p-8 text-[#1A1C24]">
+        <div className="w-full max-w-6xl mb-6 sm:mb-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
           <Link href="/" className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors text-sm font-medium">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
             Retour à l&apos;accueil
           </Link>
-          <h1 className="text-3xl font-black text-[#1A1C24] tracking-wide">Historique des pronostics</h1>
+          <h1 className="text-lg sm:text-3xl font-black text-[#1A1C24] tracking-wide">Historique des pronostics</h1>
           <div className="w-24" />
         </div>
         <div className="flex flex-col items-center justify-center mt-20 text-slate-400">
@@ -155,7 +155,7 @@ export default async function HistoriquePage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 w-full max-w-6xl">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full max-w-6xl">
           {allCombines.map((c: Combined) => (
             <HistoryCard key={c.id} combine={c} />
           ))}

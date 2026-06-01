@@ -139,7 +139,7 @@ export default function MontanteSectionClient({ montante, historique }: Props) {
                         ) : (
                             <div className="text-center py-2">
                                 <p className="text-[10px] sm:text-xs text-white/50">
-                                    ⏳ En attente du premier prono du robot...
+                                    ⏳ En attente de la montante du jour...
                                 </p>
                             </div>
                         )}

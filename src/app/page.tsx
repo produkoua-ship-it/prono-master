@@ -79,9 +79,9 @@ export default async function Home() {
   }).slice(0, 6);
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen bg-[#F3F5F8] p-8 text-[#1A1C24]">
-      <div className="w-full max-w-6xl flex justify-between items-start mb-8">
-        <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">PronoMaster - Vos combinés du jour</h1>
+    <div className="flex flex-col items-center justify-start min-h-screen bg-[#F3F5F8] p-4 sm:p-8 text-[#1A1C24]">
+      <div className="w-full max-w-6xl flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-0 mb-6 sm:mb-8">
+        <h1 className="text-base sm:text-xl md:text-2xl font-black text-slate-900 tracking-tight">PronoMaster - Vos combinés du jour</h1>
         <a
           href="/historique"
           className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-800 hover:text-slate-900 rounded-2xl border border-slate-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all duration-300 text-sm group whitespace-nowrap font-medium"
@@ -102,7 +102,7 @@ export default async function Home() {
       {combinesData.length === 0 ? (
         <p className="text-slate-500 font-medium">{"Aucun combiné disponible pour aujourd'hui."}</p>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-6xl">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full max-w-6xl">
           {combinesData.map((c) => (
             <CombineCard key={c.id} combine={c} />
           ))}
