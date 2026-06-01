@@ -14,27 +14,43 @@ interface MatchBannerSliderProps {
     matches: BannerMatch[];
 }
 
-// Images de stade par type de sport
+// Images de stade fiables par sport (Unsplash)
 const sportImages: Record<string, string> = {
-    baseball: "https://images.unsplash.com/photo-1508344928928-7165b67de128?w=1200&q=80",
-    mlb: "https://images.unsplash.com/photo-1508344928928-7165b67de128?w=1200&q=80",
-    basketball: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1200&q=80",
+    soccer: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&q=80",
+    football: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&q=80",
+    ligue: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&q=80",
+    premier: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&q=80",
+    champions: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&q=80",
+    liga: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&q=80",
+    serie: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&q=80",
+    bundesliga: "https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=1200&q=80",
+    mlb: "https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?w=1200&q=80",
+    baseball: "https://images.unsplash.com/photo-1530541930197-ff16ac917b0e?w=1200&q=80",
     nba: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1200&q=80",
-    football: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1200&q=80",
-    soccer: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1200&q=80",
+    basketball: "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1200&q=80",
     hockey: "https://images.unsplash.com/photo-1515703407324-5f753afd8be8?w=1200&q=80",
+    nhl: "https://images.unsplash.com/photo-1515703407324-5f753afd8be8?w=1200&q=80",
     tennis: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=1200&q=80",
+    atp: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=1200&q=80",
+    wta: "https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=1200&q=80",
     cricket: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=1200&q=80",
+    nfl: "https://images.unsplash.com/photo-1560272564-c83b66b1ad12?w=1200&q=80",
+    ufc: "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=1200&q=80",
+    mma: "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=1200&q=80",
+    boxing: "https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=1200&q=80",
+    rugby: "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=1200&q=80",
 };
 
-const fallbackImage = "https://images.unsplash.com/photo-1461896836934-bd45ba8fcf9b?w=1200&q=80";
+// Image de stade générique par défaut (stade sous projecteurs)
+const defaultImage = "https://images.unsplash.com/photo-1540747737956-37872e7e56ae?w=1200&q=80";
 
 function getSportImage(sport: string): string {
+    if (!sport) return defaultImage;
     const lower = sport.toLowerCase();
     for (const [key, url] of Object.entries(sportImages)) {
         if (lower.includes(key)) return url;
     }
-    return fallbackImage;
+    return defaultImage;
 }
 
 function formatBannerTime(dateStr: string) {
@@ -42,22 +58,20 @@ function formatBannerTime(dateStr: string) {
     return d.toLocaleTimeString("fr-FR", { timeZone: "UTC", hour: "2-digit", minute: "2-digit" });
 }
 
-// Bannière de bienvenue par défaut
 const welcomeBanner = {
     id: 0,
     title: "PronoMaster",
     subtitle: "Bienvenue",
     league: "Tous les sports",
     time: "",
-    image: "https://images.unsplash.com/photo-1461896836934-bd45ba8fcf9b?w=1200&q=80",
+    image: defaultImage,
 };
 
 export default function MatchBannerSlider({ matches }: MatchBannerSliderProps) {
     const [activeIndex, setActiveIndex] = useState(0);
 
-    // Construire les banners à partir des vrais matchs
     const banners = matches.length > 0
-        ? matches.map((m, idx) => ({
+        ? matches.map((m) => ({
             id: m.id,
             title: `${m.home_team} vs ${m.away_team}`,
             subtitle: "Match du jour",
@@ -82,14 +96,15 @@ export default function MatchBannerSlider({ matches }: MatchBannerSliderProps) {
                     key={banner.id}
                     className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === activeIndex ? "opacity-100 z-10" : "opacity-0 z-0"}`}
                 >
-                    <img
-                        src={banner.image}
-                        alt={banner.title}
-                        className="absolute inset-0 w-full h-full object-cover"
-                        loading={idx === 0 ? "eager" : "lazy"}
+                    {/* Image de fond via div + backgroundImage (pas de texte alt parasite) */}
+                    <div
+                        className="absolute inset-0 w-full h-full bg-cover bg-center"
+                        style={{ backgroundImage: `url(${banner.image})` }}
                     />
+                    {/* Superposition sombre */}
                     <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/30" />
 
+                    {/* Contenu texte */}
                     <div className="relative h-full flex flex-col justify-between p-6 sm:p-8 text-white">
                         <div className="flex items-center justify-between">
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg">
@@ -134,7 +149,6 @@ export default function MatchBannerSlider({ matches }: MatchBannerSliderProps) {
                             />
                         ))}
                     </div>
-
                     <button
                         onClick={() => setActiveIndex((prev) => (prev - 1 + banners.length) % banners.length)}
                         className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white opacity-0 group-hover:opacity-100 hover:bg-white/30 transition-all duration-300"
