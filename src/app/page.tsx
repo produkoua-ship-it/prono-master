@@ -60,10 +60,27 @@ export default async function Home() {
     matchs: c.matchs || [],
   }));
 
+  // Fetch unique matches for the banner slider
+  const { data: allMatchs } = await supabase
+    .from("matchs_du_combine")
+    .select("id, sport, home_team, away_team, commence_at")
+    .not("commence_at", "is", null)
+    .order("commence_at", { ascending: true })
+    .limit(20);
+
+  // Deduplicate by home_team+away_team combo
+  const seen = new Set<string>();
+  const bannerMatches = (allMatchs || []).filter((m: any) => {
+    const key = `${m.home_team}-${m.away_team}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  }).slice(0, 6);
+
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-[#F3F5F8] p-8 text-[#1A1C24]">
       <div className="w-full max-w-6xl flex justify-between items-start mb-8">
-        <h1 className="text-3xl font-black text-[#1A1C24] tracking-wide">PronoMaster - Vos combinés du jour</h1>
+        <h1 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">PronoMaster - Vos combinés du jour</h1>
         <a
           href="/historique"
           className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-800 hover:text-slate-900 rounded-2xl border border-slate-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all duration-300 text-sm group whitespace-nowrap font-medium"
@@ -78,7 +95,7 @@ export default async function Home() {
         </a>
       </div>
       <div className="w-full max-w-6xl mb-8">
-        <MatchBannerSlider />
+        <MatchBannerSlider matches={bannerMatches} />
       </div>
       {combinesData.length === 0 ? (
         <p className="text-slate-500 font-medium">{"Aucun combiné disponible pour aujourd'hui."}</p>

@@ -78,7 +78,7 @@ export default function CombineCard({ combine }: { combine: Combined }) {
             </div>
             <div className="text-right">
               <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Cote Totale</p>
-              <p className="text-2xl font-black bg-gradient-to-r from-[#FF2E93] to-[#712EFF] bg-clip-text text-transparent">{combine.cote_totale.toFixed(2)}</p>
+              <p className="text-transparent bg-clip-text bg-gradient-to-r from-purple-700 to-indigo-900 font-black text-3xl">{combine.cote_totale.toFixed(2)}</p>
             </div>
           </div>
 
