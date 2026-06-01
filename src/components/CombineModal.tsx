@@ -47,22 +47,26 @@ export default function CombineModal({ combine, onClose }: CombineModalProps) {
       {/* Backdrop with fade */}
       <div className="absolute inset-0 bg-black/30 animate-backdropFadeIn" onClick={onClose} />
 
-      {/* Modal panel */}
-      <div className="relative glass-panel p-6 w-full max-w-2xl mx-4 animate-modalScaleIn">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-4">
-          <h2 className="text-2xl font-black text-[#1A1C24]">Combinaison N° {combine.id}</h2>
-          <button onClick={onClose} className="text-slate-500 hover:text-slate-800 transition-colors" aria-label="Close modal">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+      {/* Modal panel — tout est dans le bloc blanc */}
+      <div className="relative bg-white rounded-3xl p-6 w-full max-w-2xl mx-4 animate-modalScaleIn shadow-[0_25px_60px_rgba(0,0,0,0.15)]">
+        {/* En-tête : titre + cote à gauche, croix à droite */}
+        <div className="flex items-start justify-between mb-4 border-b border-slate-100 pb-4">
+          <div>
+            <h2 className="text-xl font-black text-slate-950">Combinaison N° {combine.id}</h2>
+            <p className="text-sm font-bold text-[#FF2E93] mt-1">
+              Cote totale : {combine.cote_totale.toFixed(2)}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-9 h-9 rounded-full bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 flex items-center justify-center transition-colors"
+            aria-label="Fermer"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-
-        {/* Total odds */}
-        <p className="text-xl font-bold bg-gradient-to-r from-[#FF2E93] to-[#712EFF] bg-clip-text text-transparent mb-4">
-          Cote Totale : {combine.cote_totale.toFixed(2)}
-        </p>
 
         {/* Match list */}
         <div className="space-y-4">
@@ -107,9 +111,9 @@ export default function CombineModal({ combine, onClose }: CombineModalProps) {
 
                   {/* Prediction & odds – enlarged */}
                   <div className="flex items-center mt-3 pt-2 border-t border-slate-100">
-                      <span className="text-xl font-extrabold text-[#712EFF] bg-purple-50 px-2 py-0.5 rounded-lg">
-                        {match.prediction} • <span className="text-[#FF2E93] text-2xl">{match.cote.toFixed(2)}</span>
-                      </span>
+                    <span className="text-xl font-extrabold text-[#712EFF] bg-purple-50 px-2 py-0.5 rounded-lg">
+                      {match.prediction} • <span className="text-[#FF2E93] text-2xl">{match.cote.toFixed(2)}</span>
+                    </span>
                   </div>
                 </div>
               );
