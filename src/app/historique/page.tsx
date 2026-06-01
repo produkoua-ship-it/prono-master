@@ -32,7 +32,7 @@ export default async function HistoriquePage() {
       cote_totale,
       created_at,
       statut,
-      matchs:matchs_du_combine!fk_matchs_du_combine_combines (
+      matchs:matchs_du_combine!combine_id (
         match_id,
         sport,
         home_team,
