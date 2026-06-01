@@ -79,17 +79,18 @@ export default async function Home() {
     return true;
   }).slice(0, 6);
 
-  // Find the earliest match time for the flash banner countdown
-  const earliestMatch = bannerMatches.length > 0
-    ? bannerMatches.reduce((earliest: any, m: any) =>
-      new Date(m.commence_at) < new Date(earliest.commence_at) ? m : earliest
-    )
-    : null;
+  // Fetch montante data for the flash banner
+  const { data: montanteData } = await supabase
+    .from("montante_du_jour")
+    .select("jour_actuel, mise_actuelle, cote_cible, statut")
+    .order("id", { ascending: false })
+    .limit(1)
+    .single();
 
-  const nextMatchTime = earliestMatch?.commence_at || null;
-  const nextMatchLabel = earliestMatch
-    ? `${earliestMatch.home_team} vs ${earliestMatch.away_team}`
-    : null;
+  const jourActuel = montanteData?.jour_actuel || 1;
+  const miseActuelle = montanteData?.mise_actuelle || 1000;
+  const gainPotentiel = Math.round((montanteData?.mise_actuelle || 1000) * (montanteData?.cote_cible || 1.5));
+  const statut = montanteData?.statut || "EN_COURS";
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-[#F3F5F8] p-4 sm:p-8 text-[#1A1C24]">
@@ -111,7 +112,7 @@ export default async function Home() {
       <div className="w-full max-w-6xl mb-4">
         <MatchBannerSlider matches={bannerMatches} />
       </div>
-      <FlashBanner nextMatchTime={nextMatchTime} matchLabel={nextMatchLabel} />
+      <FlashBanner jourActuel={jourActuel} miseActuelle={miseActuelle} gainPotentiel={gainPotentiel} statut={statut} />
       {combinesData.length === 0 ? (
         <p className="text-slate-500 font-medium">{"Aucun combiné disponible pour aujourd'hui."}</p>
       ) : (
