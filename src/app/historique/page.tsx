@@ -56,14 +56,10 @@ export default async function HistoriquePage() {
         );
     }
 
-    // Filtrer : on garde uniquement les combinés dont TOUS les matchs sont terminés
-    // On compare en UTC pour éviter les problèmes de fuseau horaire côté serveur
-    const now = new Date();
-    // On prend la date UTC : maintenant - 1h (marge pour les matchs qui viennent de se terminer)
-    // mais on garde l'heure locale de l'utilisateur via le client
-    // Le serveur rend en UTC, donc on utilise UTC pour la comparaison serveur
-    const nowUtc = Date.now();
+    // Timestamp actuel pour la comparaison
+    const nowMs = Date.now();
 
+    // On mappe et on filtre côté serveur
     const allCombines: Combined[] = (combines || [])
         .map((c: any) => ({
             id: c.id,
@@ -73,11 +69,14 @@ export default async function HistoriquePage() {
             statut: c.statut || null,
         }))
         .filter((c: Combined) => {
-            // Si le statut est déjà renseigné en base, on l'affiche toujours
-            if (c.statut === "gagne" || c.statut === "perdu") return true;
-            // Sinon, on affiche uniquement si TOUS les matchs sont dans le passé
+            // Si aucun match, on ignore
             if (c.matchs.length === 0) return false;
-            return c.matchs.every((m) => new Date(m.commence_at).getTime() < nowUtc);
+
+            // Vérifier si TOUS les matchs sont terminés (commence_at < maintenant)
+            return c.matchs.every((m) => {
+                const matchMs = new Date(m.commence_at).getTime();
+                return matchMs < nowMs;
+            });
         })
         .slice(0, 20);
 
