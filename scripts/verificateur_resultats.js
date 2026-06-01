@@ -204,6 +204,11 @@ async function main() {
     .from('combines_du_jour')
     .select('id, statut');
 
+  if (combinesError) {
+    console.error("Erreur de récupération des combinés :", combinesError.message);
+    return;
+  }
+
   const { data: allMatchesForCombines } = await supabase
     .from('matchs_du_combine')
     .select('combine_id, statut_match');

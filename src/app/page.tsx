@@ -1,5 +1,6 @@
-import { supabase } from "@/lib/supabase";
 import CombineCard from "@/components/CombineCard";
+import MatchBannerSlider from "@/components/MatchBannerSlider";
+import { supabase } from "@/lib/supabase";
 
 export const revalidate = 0;
 
@@ -20,14 +21,17 @@ interface Combined {
   matchs: CombinedMatch[];
 }
 
+type CombineRow = Omit<Combined, "matchs"> & {
+  matchs?: CombinedMatch[] | null;
+};
+
 export default async function Home() {
-  // Récupère les combinés et spécifie la relation exacte via la clé étrangère 'combine_id'
   const { data: combines, error } = await supabase
     .from("combines_du_jour")
     .select(`
       id,
       cote_totale,
-        matchs:matchs_du_combine!fk_matchs_du_combine_combines (
+      matchs:matchs_du_combine!fk_matchs_du_combine_combines (
         match_id,
         sport,
         home_team,
@@ -50,17 +54,16 @@ export default async function Home() {
     );
   }
 
-  // Les matchs sont déjà renommés en "matchs" grâce à l'alias 'matchs:matchs_du_combine'
-  const combinesData = (combines || []).map((c: any) => ({
+  const combinesData: Combined[] = ((combines || []) as CombineRow[]).map((c) => ({
     id: c.id,
     cote_totale: c.cote_totale,
-    matchs: c.matchs || []
+    matchs: c.matchs || [],
   }));
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-[#F3F5F8] p-8 text-[#1A1C24]">
       <div className="w-full max-w-6xl flex justify-between items-start mb-8">
-        <h1 className="text-3xl font-black text-[#1A1C24] tracking-wide">PronoMaster – Vos combinés du jour</h1>
+        <h1 className="text-3xl font-black text-[#1A1C24] tracking-wide">PronoMaster - Vos combinés du jour</h1>
         <a
           href="/historique"
           className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-800 hover:text-slate-900 rounded-2xl border border-slate-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all duration-300 text-sm group whitespace-nowrap font-medium"
@@ -74,10 +77,13 @@ export default async function Home() {
           </svg>
         </a>
       </div>
+      <div className="w-full max-w-6xl mb-8">
+        <MatchBannerSlider />
+      </div>
       {combinesData.length === 0 ? (
-        <p className="text-slate-500 font-medium">Aucun combiné disponible pour aujourd'hui.</p>
+        <p className="text-slate-500 font-medium">{"Aucun combiné disponible pour aujourd'hui."}</p>
       ) : (
-        <div className="grid grid-cols-2 gap-4 w-full max-w-6xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-6xl">
           {combinesData.map((c) => (
             <CombineCard key={c.id} combine={c} />
           ))}
@@ -86,4 +92,3 @@ export default async function Home() {
     </div>
   );
 }
-
