@@ -1,0 +1,27 @@
+name: Generate Daily Combines
+
+on:
+  schedule:
+    - cron: "0 0 * * *"  # Every day at 00:00 UTC
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run generate script
+        run: node scripts/generateur_combines.js
