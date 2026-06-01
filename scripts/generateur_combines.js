@@ -390,8 +390,10 @@ function generateCombinés(predictionsPool, count = 10) {
 }
 
 async function cleanupOldCombines() {
-  console.log("--- Nettoyage des anciens combinés ---");
-  const { error } = await supabase.from('combines_du_jour').delete().neq('id', 0);
+  console.log("--- Nettoyage des anciens combinés (plus de 3 jours) ---");
+  const threeDaysAgo = new Date();
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  const { error } = await supabase.from('combines_du_jour').delete().lt('created_at', threeDaysAgo.toISOString());
   if (error) {
     console.error("Erreur lors du nettoyage:", error.message);
   } else {
@@ -432,9 +434,40 @@ async function main() {
 
   console.log(`\n=== Pool total de pronostics disponibles : ${allPredictions.length} ===`);
 
+  // Vérifier combien de combinés valides on a déjà dans la base
+  const now = new Date();
+  const { data: recentCombines } = await supabase
+    .from('combines_du_jour')
+    .select(`
+      id,
+      matchs:matchs_du_combine (
+        commence_at
+      )
+    `)
+    .order('id', { ascending: false })
+    .limit(30);
+
+  let validCount = 0;
+  if (recentCombines) {
+    for (const c of recentCombines) {
+      if (c.matchs && c.matchs.length > 0) {
+        const isValid = c.matchs.every(m => new Date(m.commence_at).getTime() > now.getTime());
+        if (isValid) validCount++;
+      }
+    }
+  }
+
+  const neededCombines = Math.max(0, 10 - validCount);
+  console.log(`\nCombinés valides existants : ${validCount}. Nouveaux combinés nécessaires : ${neededCombines}`);
+
+  if (neededCombines === 0) {
+    console.log("Aucun nouveau combiné nécessaire. Processus terminé.");
+    return;
+  }
+
   // 3. Génération des combinés (seule règle : cote totale <= 3.00)
-  const combinésGénérés = generateCombinés(allPredictions, 10);
-  console.log(`\n=== Génération terminée. ${combinésGénérés.length}/10 combinés créés (cote totale <= 3.00). ===`);
+  const combinésGénérés = generateCombinés(allPredictions, neededCombines);
+  console.log(`\n=== Génération terminée. ${combinésGénérés.length}/${neededCombines} combinés créés (cote totale <= 3.00). ===`);
 
   if (combinésGénérés.length === 0) {
     console.log("Aucun combiné n'a pu être généré.");

@@ -3,15 +3,13 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --color-neon-green: var(--neon-green);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
-  --neon-green: #39FF14;
+  --background: #F3F5F8;
+  --foreground: #1A1C24;
 }
 
 body {
@@ -30,35 +28,7 @@ body {
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
-.text-glow {
-  text-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
-}
-
-.neon-border {
-  border-color: rgba(57, 255, 20, 0.5);
-  box-shadow: 0 0 10px rgba(57, 255, 20, 0.2);
-}
-
 /* ===== Animations pour l'historique ===== */
-
-/* Lueur pulsante sur la carte gagnante */
-@keyframes glowPulse {
-
-  0%,
-  100% {
-    box-shadow: 0 0 15px rgba(57, 255, 20, 0.2), 0 0 30px rgba(57, 255, 20, 0.1);
-    border-color: rgba(57, 255, 20, 0.3);
-  }
-
-  50% {
-    box-shadow: 0 0 25px rgba(57, 255, 20, 0.5), 0 0 50px rgba(57, 255, 20, 0.2), 0 0 80px rgba(57, 255, 20, 0.1);
-    border-color: rgba(57, 255, 20, 0.7);
-  }
-}
-
-.animate-glowPulse {
-  animation: glowPulse 3s ease-in-out infinite;
-}
 
 /* Rotation de la lueur de fond */
 @keyframes glowRotate {
@@ -84,102 +54,20 @@ body {
 
 /* Pulsation du badge GAGNANT */
 @keyframes badgePulse {
-
   0%,
   100% {
     transform: scale(1);
-    box-shadow: 0 0 20px rgba(57, 255, 20, 0.5);
+    box-shadow: 0 0 15px rgba(255, 46, 147, 0.25);
   }
 
   50% {
     transform: scale(1.05);
-    box-shadow: 0 0 40px rgba(57, 255, 20, 0.8), 0 0 60px rgba(255, 215, 0, 0.3);
+    box-shadow: 0 0 30px rgba(255, 46, 147, 0.5), 0 0 40px rgba(113, 46, 255, 0.3);
   }
 }
 
 .animate-badgePulse {
   animation: badgePulse 2s ease-in-out infinite;
-}
-
-/* Particules flottantes */
-@keyframes particleFloat1 {
-  0% {
-    transform: translateY(0) translateX(0) scale(0);
-    opacity: 0;
-  }
-
-  50% {
-    opacity: 1;
-  }
-
-  100% {
-    transform: translateY(-60px) translateX(30px) scale(1.5);
-    opacity: 0;
-  }
-}
-
-@keyframes particleFloat2 {
-  0% {
-    transform: translateY(0) translateX(0) scale(0);
-    opacity: 0;
-  }
-
-  50% {
-    opacity: 1;
-  }
-
-  100% {
-    transform: translateY(-80px) translateX(-20px) scale(2);
-    opacity: 0;
-  }
-}
-
-@keyframes particleFloat3 {
-  0% {
-    transform: translateY(0) translateX(0) scale(0);
-    opacity: 0;
-  }
-
-  50% {
-    opacity: 1;
-  }
-
-  100% {
-    transform: translateY(40px) translateX(-40px) scale(1.5);
-    opacity: 0;
-  }
-}
-
-@keyframes particleFloat4 {
-  0% {
-    transform: translateY(0) translateX(0) scale(0);
-    opacity: 0;
-  }
-
-  50% {
-    opacity: 1;
-  }
-
-  100% {
-    transform: translateY(50px) translateX(30px) scale(2);
-    opacity: 0;
-  }
-}
-
-.animate-particle1 {
-  animation: particleFloat1 4s ease-in-out infinite;
-}
-
-.animate-particle2 {
-  animation: particleFloat2 3.5s ease-in-out infinite 0.5s;
-}
-
-.animate-particle3 {
-  animation: particleFloat3 4.5s ease-in-out infinite 1s;
-}
-
-.animate-particle4 {
-  animation: particleFloat4 3s ease-in-out infinite 1.5s;
 }
 
 /* Fade in pour les éléments débloqués */

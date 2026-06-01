@@ -23,10 +23,10 @@ export default function ClipboardButton({ textToCopy, label = "Copier le combin√
   return (
     <button
       onClick={handleCopy}
-      className={`w-full py-3 px-4 rounded-xl font-semibold tracking-wide transition-all duration-300 flex items-center justify-center gap-2 border ${
+      className={`w-full py-3 px-4 rounded-2xl font-semibold tracking-wide transition-all duration-300 flex items-center justify-center gap-2 border ${
         copied
-          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40 text-glow"
-          : "bg-neon-green/10 text-neon-green border-neon-green/20 hover:bg-neon-green hover:text-black hover:border-neon-green hover:shadow-[0_0_15px_rgba(57,255,20,0.4)]"
+          ? "bg-emerald-50 text-emerald-600 border-emerald-200"
+          : "bg-white text-slate-700 border-slate-200 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:bg-gradient-to-r hover:from-[#FF2E93] hover:to-[#712EFF] hover:text-white hover:border-transparent hover:shadow-[0_8px_20px_rgba(255,46,147,0.15)]"
       }`}
     >
       {copied ? (

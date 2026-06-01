@@ -13,6 +13,7 @@ interface CombinedMatch {
     market: string;
     cote: number;
     commence_at: string;
+    statut_match?: string | null;
 }
 
 interface Combined {
@@ -36,32 +37,32 @@ export default async function HistoriquePage() {
     if (error) {
         console.error("Supabase fetch error:", error);
         return (
-            <div className="flex flex-col items-center justify-center min-h-screen bg-black text-neon-green p-8">
+            <div className="flex flex-col items-center justify-center min-h-screen bg-[#F3F5F8] text-red-500 p-8">
                 <p>Erreur lors du chargement de l'historique : {error.message}</p>
-                <Link href="/" className="mt-4 text-neon-green underline">Retour à l'accueil</Link>
+                <Link href="/" className="mt-4 text-[#712EFF] hover:underline font-semibold">Retour à l'accueil</Link>
             </div>
         );
     }
 
     if (!combines || combines.length === 0) {
         return (
-            <div className="flex flex-col items-center min-h-screen bg-black p-8">
+            <div className="flex flex-col items-center min-h-screen bg-[#F3F5F8] p-8 text-[#1A1C24]">
                 <div className="w-full max-w-6xl mb-8 flex items-center justify-between">
-                    <Link href="/" className="flex items-center gap-2 text-zinc-400 hover:text-neon-green transition-colors text-sm">
+                    <Link href="/" className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors text-sm font-medium">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                         </svg>
                         Retour à l'accueil
                     </Link>
-                    <h1 className="text-3xl font-bold text-neon-green">📜 Historique des pronostics</h1>
+                    <h1 className="text-3xl font-black text-[#1A1C24] tracking-wide">📜 Historique des pronostics</h1>
                     <div className="w-24" />
                 </div>
-                <div className="flex flex-col items-center justify-center mt-20 text-zinc-500">
+                <div className="flex flex-col items-center justify-center mt-20 text-slate-400">
                     <svg className="w-16 h-16 mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <p className="text-lg">Aucun combiné disponible.</p>
-                    <Link href="/" className="mt-6 px-6 py-2 bg-neon-green text-black font-bold rounded-lg hover:bg-neon-green/80 transition-all">
+                    <p className="text-lg font-medium">Aucun combiné disponible.</p>
+                    <Link href="/" className="mt-6 px-6 py-3 bg-gradient-to-r from-[#FF2E93] to-[#712EFF] text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(255,46,147,0.2)] hover:shadow-[0_4px_25px_rgba(255,46,147,0.4)] hover:scale-[1.02] transition-all">
                         Voir les combinés du jour
                     </Link>
                 </div>
@@ -75,7 +76,7 @@ export default async function HistoriquePage() {
     // 3. Récupérer les matchs pour ces combinés (requête séparée)
     const { data: allMatchs, error: matchsError } = await supabase
         .from("matchs_du_combine")
-        .select("combine_id, match_id, sport, home_team, away_team, prediction, market, cote, commence_at")
+        .select("combine_id, match_id, sport, home_team, away_team, prediction, market, cote, commence_at, statut_match")
         .in("combine_id", combineIds);
 
     if (matchsError) {
@@ -97,6 +98,7 @@ export default async function HistoriquePage() {
                 market: m.market,
                 cote: m.cote,
                 commence_at: m.commence_at,
+                statut_match: m.statut_match,
             });
         }
     }
@@ -118,40 +120,42 @@ export default async function HistoriquePage() {
             statut: c.statut || null,
         }))
         .filter((c: Combined) => {
-            // Keep only if all matches are on the current day
+            // Un combiné avec un statut définitif (gagne/perdu) va toujours dans l'historique
+            if (c.statut === "gagne" || c.statut === "perdu") return true;
+            // Sinon, ne garder que si TOUS les matchs ont déjà commencé
             if (c.matchs.length === 0) return false;
             return c.matchs.every(m => {
                 const t = new Date(m.commence_at).getTime();
-                return t >= startMs && t < endMs;
+                return t < nowMs;
             });
         })
         .slice(0, 20);
 
     return (
-        <div className="flex flex-col items-center min-h-screen bg-black p-8">
+        <div className="flex flex-col items-center min-h-screen bg-[#F3F5F8] p-8 text-[#1A1C24]">
             {/* Header */}
             <div className="w-full max-w-6xl mb-8 flex items-center justify-between">
                 <Link
                     href="/"
-                    className="flex items-center gap-2 text-zinc-400 hover:text-neon-green transition-colors text-sm"
+                    className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors text-sm font-medium"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                     </svg>
                     Retour à l'accueil
                 </Link>
-                <h1 className="text-3xl font-bold text-neon-green">📜 Historique des pronostics</h1>
+                <h1 className="text-3xl font-black text-[#1A1C24] tracking-wide">📜 Historique des pronostics</h1>
                 <div className="w-24" /> {/* spacer */}
             </div>
 
             {allCombines.length === 0 ? (
-                <div className="flex flex-col items-center justify-center mt-20 text-zinc-500">
+                <div className="flex flex-col items-center justify-center mt-20 text-slate-400">
                     <svg className="w-16 h-16 mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <p className="text-lg">Aucun combiné terminé pour le moment.</p>
+                    <p className="text-lg font-medium">Aucun combiné terminé pour le moment.</p>
                     <p className="text-sm mt-2">Revenez plus tard pour voir l'historique des pronostics.</p>
-                    <Link href="/" className="mt-6 px-6 py-2 bg-neon-green text-black font-bold rounded-lg hover:bg-neon-green/80 transition-all">
+                    <Link href="/" className="mt-6 px-6 py-3 bg-gradient-to-r from-[#FF2E93] to-[#712EFF] text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(255,46,147,0.2)] hover:shadow-[0_4px_25px_rgba(255,46,147,0.4)] hover:scale-[1.02] transition-all">
                         Voir les combinés du jour
                     </Link>
                 </div>
