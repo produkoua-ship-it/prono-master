@@ -34,7 +34,8 @@ export default async function Home() {
         away_team,
         prediction,
         market,
-        cote
+        cote,
+        commence_at
       )
     `)
     .order("id", { ascending: false })

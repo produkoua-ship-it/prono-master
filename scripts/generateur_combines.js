@@ -14,11 +14,17 @@ if (!supabaseUrl || !supabaseKey) {
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Clé The Odds API
-const ODDS_API_KEY = process.env.ODDS_API_KEY;
-if (!ODDS_API_KEY) {
-  console.error("Erreur : La variable ODDS_API_KEY est manquante dans .env.local");
-  process.exit(1);
-}
+const MARKET_TIERS = [
+  ['h2h', 'totals', 'spreads', 'btts', 'double_chance', 'draw_no_bet', 'team_totals', 'asian_corners', 'cards'],
+  ['h2h', 'totals', 'spreads', 'btts', 'double_chance', 'draw_no_bet', 'team_totals'],
+  ['h2h', 'totals', 'spreads', 'btts', 'double_chance'],
+  ['h2h', 'totals', 'spreads'],
+  ['h2h', 'totals'],
+  ['h2h']
+];
+const { requireEnv } = require('./envHelper');
+const ODDS_API_KEY = requireEnv('ODDS_API_KEY');
+
 
 // Récupère TOUS les sports actifs sans aucun filtre
 async function getActiveSports() {
@@ -38,57 +44,60 @@ async function getActiveSports() {
 }
 
 async function fetchOddsForSport(sportKey) {
-  // Calculer la fenêtre : maintenant -> dans 24h (format strict ISO 8601 sans millisecondes)
+  // Calculer la fenêtre : maintenant -> dans 48h (format strict ISO 8601 sans millisecondes)
   const now = new Date();
-  const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
   const pad2 = (n) => String(n).padStart(2, '0');
   const formatDate = (d) =>
     `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}Z`;
   const commenceTimeFrom = formatDate(now);
-  const commenceTimeTo = formatDate(in24h);
+  const commenceTimeTo = formatDate(in48h);
 
   // On essaie plusieurs niveaux de marchés (du plus complet au plus basique)
-  const marketTiers = [
-    ['h2h', 'totals', 'spreads', 'btts', 'double_chance', 'draw_no_bet', 'team_totals', 'asian_corners', 'cards'],
-    ['h2h', 'totals', 'spreads', 'btts', 'double_chance', 'draw_no_bet', 'team_totals'],
-    ['h2h', 'totals', 'spreads', 'btts', 'double_chance'],
-    ['h2h', 'totals', 'spreads'],
-    ['h2h', 'totals'],
-    ['h2h']
-  ];
-
-  for (const markets of marketTiers) {
-    try {
-      const response = await axios.get(`https://api.the-odds-api.com/v4/sports/${sportKey}/odds`, {
-        params: {
-          apiKey: ODDS_API_KEY,
-          regions: 'eu',
-          markets: markets.join(','),
-          oddsFormat: 'decimal',
-          commenceTimeFrom: commenceTimeFrom,
-          commenceTimeTo: commenceTimeTo
+  // Utilise le tableau constant MARKET_TIERS défini en haut du fichier
+  for (const markets of MARKET_TIERS) {
+    // Simple retry mechanism for transient network errors (max 2 retries)
+    let attempt = 0;
+    while (attempt < 2) {
+      try {
+        const response = await axios.get(`https://api.the-odds-api.com/v4/sports/${sportKey}/odds`, {
+          params: {
+            apiKey: ODDS_API_KEY,
+            regions: 'eu',
+            markets: markets.join(','),
+            oddsFormat: 'decimal',
+            commenceTimeFrom: commenceTimeFrom,
+            commenceTimeTo: commenceTimeTo
+          }
+        });
+        // If we received matches, return them immediately
+        if (response.data && response.data.length > 0) {
+          return response.data;
         }
-      });
-      if (response.data && response.data.length > 0) {
-        return response.data;
-      }
-      // Si la réponse est vide (0 matchs), inutile d'essayer d'autres niveaux
-      return response.data;
-    } catch (error) {
-      const msg = error.response?.data?.message || error.message;
-      // Si le message contient "Invalid markets", "Markets not supported" ou "Invalid sport",
-      // on passe au niveau de marchés suivant
-      if (msg.includes('Invalid markets') || msg.includes('Markets not supported') || msg.includes('Invalid sport') || msg.includes('not found')) {
-        continue;
-      }
-      // Si c'est le quota, on arrête tout
-      if (msg.includes('quota') || msg.includes('Usage quota')) {
-        console.error(`Quota API atteint pour ${sportKey}. Arrêt des requêtes.`);
+        // Empty response – try next tier instead of exiting early
+        break; // exit retry loop, proceed to next markets tier
+      } catch (error) {
+        const msg = error.response?.data?.message || error.message;
+        // Handle known API errors that dictate moving to next tier
+        if (msg.includes('Invalid markets') || msg.includes('Markets not supported') || msg.includes('Invalid sport') || msg.includes('not found')) {
+          // Continue to next tier
+          attempt = 2; // skip retries for this tier
+          break;
+        }
+        // Quota exhausted – stop all fetching
+        if (msg.includes('quota') || msg.includes('Usage quota')) {
+          console.error(`Quota API atteint pour ${sportKey}. Arrêt des requêtes.`);
+          return [];
+        }
+        // Transient network error – retry after short delay
+        attempt++;
+        if (attempt < 2) {
+          await new Promise(r => setTimeout(r, 500)); // 500 ms back‑off
+          continue;
+        }
+        console.error(`Erreur réseau pour ${sportKey} (tentative ${attempt}):`, msg);
         return [];
       }
-      // vraie erreur (réseau, etc.)
-      console.error(`Erreur pour ${sportKey}:`, msg);
-      return [];
     }
   }
   // Aucun match disponible pour ce sport
@@ -380,8 +389,20 @@ function generateCombinés(predictionsPool, count = 10) {
   return combinés;
 }
 
+async function cleanupOldCombines() {
+  console.log("--- Nettoyage des anciens combinés ---");
+  const { error } = await supabase.from('combines_du_jour').delete().neq('id', 0);
+  if (error) {
+    console.error("Erreur lors du nettoyage:", error.message);
+  } else {
+    console.log("Nettoyage réussi.");
+  }
+}
+
 async function main() {
   console.log("=== Début de la génération des Combinés PronoMaster (Version Diversifiée) ===");
+  
+  await cleanupOldCombines();
 
   // 1. Récupérer TOUS les sports actifs (aucun filtre pays/championnat)
   const activeSports = await getActiveSports();

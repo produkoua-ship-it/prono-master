@@ -30,24 +30,28 @@ function determineStatus(statut: string | null): "win" | "loss" | "unknown" {
 
 function formatDate(dateStr: string) {
     const d = new Date(dateStr);
-    return d.toLocaleDateString("fr-FR", {
-        day: "numeric",
-        month: "short",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
+    const datePart = d.toLocaleDateString("fr-FR", { timeZone: "UTC", day: "2-digit", month: "short" });
+    const timePart = d.toLocaleTimeString("fr-FR", { timeZone: "UTC", hour: "2-digit", minute: "2-digit" });
+    return `${datePart} à ${timePart}`;
 }
 
 function formatDateShort(dateStr: string) {
     const d = new Date(dateStr);
     const now = new Date();
-    const diffMs = d.getTime() - now.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0 && diffDays > -1) return "Aujourd'hui";
-    if (diffDays === -1) return "Hier";
+    const todayStr = now.toLocaleDateString("fr-FR", { timeZone: "UTC" });
+    const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const tomorrowStr = tomorrow.toLocaleDateString("fr-FR", { timeZone: "UTC" });
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const yesterdayStr = yesterday.toLocaleDateString("fr-FR", { timeZone: "UTC" });
+    const targetStr = d.toLocaleDateString("fr-FR", { timeZone: "UTC" });
+
+    if (targetStr === todayStr) return "Aujourd'hui";
+    if (targetStr === tomorrowStr) return "Demain";
+    if (targetStr === yesterdayStr) return "Hier";
+
     return d.toLocaleDateString("fr-FR", {
+        timeZone: "UTC",
         day: "numeric",
         month: "short",
     });
@@ -56,6 +60,7 @@ function formatDateShort(dateStr: string) {
 function formatTime(dateStr: string) {
     const d = new Date(dateStr);
     return d.toLocaleTimeString("fr-FR", {
+        timeZone: "UTC",
         hour: "2-digit",
         minute: "2-digit",
     });
@@ -160,7 +165,7 @@ export default function HistoryCard({ combine }: { combine: Combined }) {
                                         {match.sport}
                                     </span>
                                     <span className="text-[10px] text-zinc-600 font-mono">
-                                        {formatDateShort(match.commence_at)} {formatTime(match.commence_at)}
+                                        {formatDateShort(match.commence_at)} à {formatTime(match.commence_at)}
                                     </span>
                                 </div>
                                 <p className="text-sm font-semibold text-white mt-1">
