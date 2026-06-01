@@ -90,7 +90,7 @@ export default function MatchBannerSlider({ matches }: MatchBannerSliderProps) {
     }, [banners.length]);
 
     return (
-        <div className="relative w-full h-[280px] sm:h-[340px] rounded-3xl overflow-hidden shadow-[0_8px_30px_rgba(0,0,0,0.08)] mb-8 group">
+        <div className="relative w-full h-32 sm:h-36 md:h-44 rounded-2xl overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.08)] mb-6 group">
             {banners.map((banner, idx) => (
                 <div
                     key={banner.id}
@@ -105,22 +105,22 @@ export default function MatchBannerSlider({ matches }: MatchBannerSliderProps) {
                     <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-black/30" />
 
                     {/* Contenu texte */}
-                    <div className="relative h-full flex flex-col justify-between p-6 sm:p-8 text-white">
+                    <div className="relative h-full flex flex-col justify-between p-3 sm:p-4 md:p-6 text-white">
                         <div className="flex items-center justify-between">
-                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg">
-                                <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[9px] font-black uppercase tracking-widest rounded-full shadow-lg">
+                                <span className="w-1 h-1 bg-white rounded-full animate-pulse" />
                                 Top Match
                             </span>
-                            <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold rounded-full uppercase tracking-wider">
+                            <span className="px-1.5 py-0.5 bg-white/20 backdrop-blur-md border border-white/30 text-white text-[9px] font-bold rounded-full uppercase tracking-wider">
                                 {banner.league}
                             </span>
                         </div>
 
-                        <div className="space-y-2">
-                            <p className="text-sm sm:text-base font-medium text-white/80 uppercase tracking-wider">
+                        <div className="space-y-0.5 sm:space-y-1">
+                            <p className="text-[9px] sm:text-[10px] font-medium text-white/70 uppercase tracking-wider">
                                 {banner.subtitle}
                             </p>
-                            <h2 className="text-3xl sm:text-5xl font-black tracking-tight drop-shadow-lg">
+                            <h2 className="text-xs sm:text-sm md:text-base font-black tracking-tight drop-shadow-lg">
                                 {banner.title}
                             </h2>
                         </div>
@@ -129,7 +129,7 @@ export default function MatchBannerSlider({ matches }: MatchBannerSliderProps) {
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span className="text-lg sm:text-xl font-bold">
+                            <span className="text-[10px] sm:text-xs md:text-sm font-bold">
                                 {banner.time ? `Coup d'envoi à ${banner.time}` : "Bonne lecture !"}
                             </span>
                         </div>

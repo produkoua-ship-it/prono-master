@@ -82,17 +82,12 @@ export default function CombineCard({ combine }: { combine: Combined }) {
             </div>
           </div>
 
-          <div className="mt-4 pt-2 flex flex-col items-center">
-            <p className="text-xs text-slate-500 mb-4 text-center font-medium leading-relaxed">
-              {isUnlocked
-                ? `Ce combiné contient ${combine.matchs?.length || 0} pronostics prêts à consulter.`
-                : `Débloque les ${combine.matchs?.length || 0} pronostics de ce combiné en un clic !`}
-            </p>
+          <div className="mt-3 flex flex-col items-center">
             <button
               type="button"
               onClick={handleUnlock}
               disabled={isLoadingPub}
-              className="w-full py-3.5 px-4 bg-gradient-to-r from-[#FF2E93] to-[#712EFF] text-white font-bold rounded-2xl shadow-[0_8px_20px_rgba(255,46,147,0.15)] hover:shadow-[0_8px_35px_rgba(255,46,147,0.3)] hover:scale-[1.01] transition-all duration-300 disabled:opacity-50 text-center flex justify-center items-center gap-2 cursor-pointer text-sm tracking-wide"
+              className="w-full py-2.5 px-4 bg-gradient-to-r from-[#FF2E93] to-[#712EFF] text-white font-bold rounded-2xl shadow-[0_4px_15px_rgba(255,46,147,0.15)] hover:shadow-[0_6px_25px_rgba(255,46,147,0.3)] hover:scale-[1.01] transition-all duration-300 disabled:opacity-50 text-center flex justify-center items-center gap-2 cursor-pointer text-xs tracking-wide"
             >
               {isLoadingPub ? (
                 <>
@@ -100,9 +95,20 @@ export default function CombineCard({ combine }: { combine: Combined }) {
                   Chargement de la publicité...
                 </>
               ) : isUnlocked ? (
-                "Voir le combiné"
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                  Voir
+                </span>
               ) : (
-                "Débloquer le combiné"
+                <span className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  Débloquer
+                </span>
               )}
             </button>
           </div>
