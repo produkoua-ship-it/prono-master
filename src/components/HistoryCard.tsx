@@ -21,15 +21,10 @@ interface Combined {
     statut: string | null;
 }
 
-// Simule le statut du combiné basé sur la date de fin des matchs
-// En vrai, on utiliserait le champ statut de la base quand il sera implémenté
-function determineStatus(combine: Combined): "win" | "loss" | "unknown" {
-    if (combine.statut === "gagne") return "win";
-    if (combine.statut === "perdu") return "loss";
-    // Simulation basée sur la cote — plus la cote est basse, plus il est probable qu'il soit gagnant
-    // En production, ce serait déterminé par les résultats réels des matchs
-    if (combine.cote_totale <= 2.5) return "win";
-    if (combine.cote_totale > 2.8) return "loss";
+// Utilise le champ statut de la base de données Supabase (gagne | perdu | null)
+function determineStatus(statut: string | null): "win" | "loss" | "unknown" {
+    if (statut === "gagne") return "win";
+    if (statut === "perdu") return "loss";
     return "unknown";
 }
 
@@ -67,7 +62,7 @@ function formatTime(dateStr: string) {
 }
 
 export default function HistoryCard({ combine }: { combine: Combined }) {
-    const status = determineStatus(combine);
+    const status = determineStatus(combine.statut);
     const isWin = status === "win";
     const isLoss = status === "loss";
 

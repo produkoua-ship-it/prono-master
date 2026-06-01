@@ -24,10 +24,7 @@ interface Combined {
 }
 
 export default async function HistoriquePage() {
-    const now = new Date().toISOString();
-
-    // Récupère les combinés dont les matchs sont terminés (commence_at < maintenant)
-    // On cherche les combinés qui ont AU MOINS UN match terminé
+    // Récupère les combinés dans Supabase
     const { data: combines, error } = await supabase
         .from("combines_du_jour")
         .select(`
@@ -59,8 +56,14 @@ export default async function HistoriquePage() {
         );
     }
 
-    // On récupère TOUS les combinés sans filtre temporel
-    // Le composant HistoryCard se charge d'afficher le statut (passé/futur)
+    // Filtrer : on garde uniquement les combinés dont TOUS les matchs sont terminés
+    // On compare en UTC pour éviter les problèmes de fuseau horaire côté serveur
+    const now = new Date();
+    // On prend la date UTC : maintenant - 1h (marge pour les matchs qui viennent de se terminer)
+    // mais on garde l'heure locale de l'utilisateur via le client
+    // Le serveur rend en UTC, donc on utilise UTC pour la comparaison serveur
+    const nowUtc = Date.now();
+
     const allCombines: Combined[] = (combines || [])
         .map((c: any) => ({
             id: c.id,
@@ -69,6 +72,13 @@ export default async function HistoriquePage() {
             matchs: c.matchs || [],
             statut: c.statut || null,
         }))
+        .filter((c: Combined) => {
+            // Si le statut est déjà renseigné en base, on l'affiche toujours
+            if (c.statut === "gagne" || c.statut === "perdu") return true;
+            // Sinon, on affiche uniquement si TOUS les matchs sont dans le passé
+            if (c.matchs.length === 0) return false;
+            return c.matchs.every((m) => new Date(m.commence_at).getTime() < nowUtc);
+        })
         .slice(0, 20);
 
     return (
