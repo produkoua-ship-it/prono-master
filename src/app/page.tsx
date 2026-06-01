@@ -1,6 +1,8 @@
 import CombineCard from "@/components/CombineCard";
 import MatchBannerSlider from "@/components/MatchBannerSlider";
 import MontanteSection from "@/components/MontanteSection";
+import FlashBanner from "@/components/FlashBanner";
+import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/lib/supabase";
 
 export const revalidate = 0;
@@ -78,6 +80,18 @@ export default async function Home() {
     return true;
   }).slice(0, 6);
 
+  // Find the earliest match time for the flash banner countdown
+  const earliestMatch = bannerMatches.length > 0
+    ? bannerMatches.reduce((earliest: any, m: any) =>
+      new Date(m.commence_at) < new Date(earliest.commence_at) ? m : earliest
+    )
+    : null;
+
+  const nextMatchTime = earliestMatch?.commence_at || null;
+  const nextMatchLabel = earliestMatch
+    ? `${earliestMatch.home_team} vs ${earliestMatch.away_team}`
+    : null;
+
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-[#F3F5F8] p-4 sm:p-8 text-[#1A1C24]">
       <div className="w-full max-w-6xl flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-0 mb-6 sm:mb-8">
@@ -95,10 +109,13 @@ export default async function Home() {
           </svg>
         </a>
       </div>
-      <div className="w-full max-w-6xl mb-8">
+      <div className="w-full max-w-6xl mb-4">
         <MatchBannerSlider matches={bannerMatches} />
       </div>
-      <MontanteSection />
+      <FlashBanner nextMatchTime={nextMatchTime} matchLabel={nextMatchLabel} />
+      <div id="montante-section">
+        <MontanteSection />
+      </div>
       {combinesData.length === 0 ? (
         <p className="text-slate-500 font-medium">{"Aucun combiné disponible pour aujourd'hui."}</p>
       ) : (
@@ -108,6 +125,7 @@ export default async function Home() {
           ))}
         </div>
       )}
+      <BottomNav />
     </div>
   );
 }
