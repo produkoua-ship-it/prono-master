@@ -79,10 +79,10 @@ export default async function Home() {
     return true;
   }).slice(0, 6);
 
-  // Fetch montante data for the flash banner
+  // Fetch montante data for the flash banner (including matchs JSONB)
   const { data: montanteData } = await supabase
     .from("montante_du_jour")
-    .select("jour_actuel, mise_actuelle, cote_cible, statut")
+    .select("jour_actuel, mise_actuelle, cote_cible, statut, matchs")
     .order("id", { ascending: false })
     .limit(1)
     .single();
@@ -91,6 +91,10 @@ export default async function Home() {
   const miseActuelle = montanteData?.mise_actuelle || 1000;
   const gainPotentiel = Math.round((montanteData?.mise_actuelle || 1000) * (montanteData?.cote_cible || 1.5));
   const statut = montanteData?.statut || "EN_COURS";
+
+  // Extract first match from montante for the prono banner
+  const montanteMatchs = (montanteData?.matchs as any[]) || [];
+  const montanteMatch = montanteMatchs[0] || null;
 
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-[#F3F5F8] p-4 sm:p-8 text-[#1A1C24]">
@@ -112,7 +116,17 @@ export default async function Home() {
       <div className="w-full max-w-6xl mb-4">
         <MatchBannerSlider matches={bannerMatches} />
       </div>
-      <FlashBanner jourActuel={jourActuel} miseActuelle={miseActuelle} gainPotentiel={gainPotentiel} statut={statut} />
+      <FlashBanner
+        jourActuel={jourActuel}
+        miseActuelle={miseActuelle}
+        gainPotentiel={gainPotentiel}
+        statut={statut}
+        homeTeam={montanteMatch?.home_team || null}
+        awayTeam={montanteMatch?.away_team || null}
+        prediction={montanteMatch?.prediction || null}
+        cote={montanteMatch?.cote || null}
+        commenceAt={montanteMatch?.commence_at || null}
+      />
       {combinesData.length === 0 ? (
         <p className="text-slate-500 font-medium">{"Aucun combiné disponible pour aujourd'hui."}</p>
       ) : (
