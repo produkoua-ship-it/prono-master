@@ -1,7 +1,6 @@
 import CombineCard from "@/components/CombineCard";
 import MatchBannerSlider from "@/components/MatchBannerSlider";
 import FlashBanner from "@/components/FlashBanner";
-import BottomNav from "@/components/BottomNav";
 import { supabase } from "@/lib/supabase";
 
 export const revalidate = 0;
@@ -136,7 +135,6 @@ export default async function Home() {
           ))}
         </div>
       )}
-      <BottomNav />
     </div>
   );
 }
