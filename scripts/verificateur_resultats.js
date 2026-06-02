@@ -1,4 +1,3 @@
-require('dotenv').config({ path: '.env.local' });
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 const { requireEnv } = require('./envHelper');
@@ -13,7 +12,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 function verifyPrediction(match, scores) {
   // scores = [{ name: 'Team A', score: '2' }, { name: 'Team B', score: '1' }]
   if (!scores || scores.length < 2) return null;
-  
+
   // Find scores
   const scoreA = parseInt(scores[0].score) || 0;
   const scoreB = parseInt(scores[1].score) || 0;
@@ -38,12 +37,12 @@ function verifyPrediction(match, scores) {
       const predictedTeam = prediction.replace('Victoire de ', '').trim();
       const s1 = getScoreByTeam(predictedTeam);
       const s2 = predictedTeam === teamA ? scoreB : scoreA;
-      
+
       if (s1 === null) return null; // Could not match team name
-      
+
       if (s1 > s2) return 'gagne';
       return 'perdu';
-    } 
+    }
     else if (market === 'totals') {
       // e.g. "Plus de 2.5 buts/points" or "Under 2.5 buts/points"
       // Wait, generator produces: "Plus de 2.5 buts" or "Moins de 2.5 buts" or "Under..."
@@ -53,7 +52,7 @@ function verifyPrediction(match, scores) {
       if (!matchPoint) return null;
       const point = parseFloat(matchPoint[0]);
       const totalScore = scoreA + scoreB;
-      
+
       if (isOver) return totalScore > point ? 'gagne' : 'perdu';
       if (isUnder) return totalScore < point ? 'gagne' : 'perdu';
     }
@@ -69,22 +68,22 @@ function verifyPrediction(match, scores) {
       // Actually Odds API outcomes for double chance are usually "Home/Draw", "Draw/Away", "Home/Away" or the team names
       const homeScore = getScoreByTeam(match.home_team) || scoreA;
       const awayScore = getScoreByTeam(match.away_team) || scoreB;
-      
+
       const isDraw = homeScore === awayScore;
       const homeWon = homeScore > awayScore;
       const awayWon = awayScore > homeScore;
 
       if (prediction.includes(match.home_team) && prediction.includes('Nul')) {
-          // Home or Draw
-          return (homeWon || isDraw) ? 'gagne' : 'perdu';
+        // Home or Draw
+        return (homeWon || isDraw) ? 'gagne' : 'perdu';
       }
       if (prediction.includes(match.away_team) && prediction.includes('Nul')) {
-          // Away or Draw
-          return (awayWon || isDraw) ? 'gagne' : 'perdu';
+        // Away or Draw
+        return (awayWon || isDraw) ? 'gagne' : 'perdu';
       }
       // If it contains both teams without draw
       if (prediction.includes(match.home_team) && prediction.includes(match.away_team)) {
-          return (!isDraw) ? 'gagne' : 'perdu';
+        return (!isDraw) ? 'gagne' : 'perdu';
       }
 
       // fallback simple matching
@@ -97,7 +96,7 @@ function verifyPrediction(match, scores) {
       const predictedTeam = prediction.replace('Nul remboursé :', '').trim();
       const s1 = getScoreByTeam(predictedTeam);
       const s2 = predictedTeam === teamA ? scoreB : scoreA;
-      
+
       if (s1 === s2) return 'rembourse'; // Should probably just be ignored or marked as cancelled, we'll map to 'en_attente' for simplicity or 'gagne_rembourse'
       if (s1 > s2) return 'gagne';
       return 'perdu';
@@ -105,7 +104,7 @@ function verifyPrediction(match, scores) {
 
     // For other markets like asian_corners or cards, we don't have the data from /scores
     return null;
-  } catch(e) {
+  } catch (e) {
     console.log("Erreur d'analyse pour le match:", match.match_id, e.message);
     return null;
   }
@@ -135,14 +134,14 @@ async function main() {
   // Group by sport to optimize API calls
   const sports = [...new Set(pendingMatches.map(m => m.sport))];
   // Map sport names to sport keys. Since we don't store sport_key directly, we need to fetch all sports first to map them
-  
+
   const { data: sportsData } = await axios.get('https://api.the-odds-api.com/v4/sports', {
     params: { apiKey: ODDS_API_KEY }
   });
-  
+
   const titleToKey = {};
-  if(sportsData) {
-      sportsData.forEach(s => titleToKey[s.title] = s.key);
+  if (sportsData) {
+    sportsData.forEach(s => titleToKey[s.title] = s.key);
   }
 
   const scoresByMatchId = {};
@@ -159,7 +158,7 @@ async function main() {
       const response = await axios.get(`https://api.the-odds-api.com/v4/sports/${sportKey}/scores/`, {
         params: { apiKey: ODDS_API_KEY, daysFrom: 3 }
       });
-      
+
       if (response.data) {
         response.data.forEach(match => {
           if (match.completed && match.scores) {
@@ -183,7 +182,7 @@ async function main() {
           .from('matchs_du_combine')
           .update({ statut_match: result })
           .eq('id', match.id);
-        
+
         if (!updateError) {
           console.log(`Match ${match.home_team} vs ${match.away_team} mis à jour : ${result.toUpperCase()} (Prono: ${match.prediction})`);
           updatedMatchCount++;
@@ -191,7 +190,7 @@ async function main() {
           console.error(`Erreur update match ${match.id}:`, updateError.message);
         }
       } else if (result === 'rembourse') {
-          console.log(`Match ${match.home_team} vs ${match.away_team} remboursé (Prono: ${match.prediction})`);
+        console.log(`Match ${match.home_team} vs ${match.away_team} remboursé (Prono: ${match.prediction})`);
       }
     }
   }
