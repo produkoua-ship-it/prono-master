@@ -102,7 +102,7 @@ export default async function Home() {
         <h1 className="text-base sm:text-xl md:text-2xl font-black text-slate-900 tracking-tight">PronoMaster - Vos combinés du jour</h1>
         <a
           href="/historique"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-800 hover:text-slate-900 rounded-2xl border border-slate-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all duration-300 text-sm group whitespace-nowrap font-medium"
+          className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-800 hover:text-slate-900 rounded-2xl border border-slate-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all duration-300 text-sm group whitespace-nowrap font-medium"
         >
           <svg className="w-4 h-4 text-slate-400 group-hover:text-pink-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -130,7 +130,7 @@ export default async function Home() {
       {combinesData.length === 0 ? (
         <p className="text-slate-500 font-medium">{"Aucun combiné disponible pour aujourd'hui."}</p>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full max-w-6xl">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 w-full max-w-6xl">
           {combinesData.map((c) => (
             <CombineCard key={c.id} combine={c} />
           ))}
