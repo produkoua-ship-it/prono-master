@@ -2,8 +2,8 @@ name: "🤖 Robot Montante — Relance automatique"
 
 on:
   schedule:
-    # Chaque jour à 23h00 UTC (00h00 en GMT+1 / 01h00 en GMT+2)
-    - cron: "0 23 * * *"
+    # Chaque jour à 03h00 UTC (Heure d'Abidjan)
+    - cron: "0 3 * * *"
   workflow_dispatch: # Permet un lancement manuel
 
 jobs:
