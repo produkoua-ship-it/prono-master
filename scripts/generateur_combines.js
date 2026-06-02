@@ -2,6 +2,9 @@ require('dotenv').config({ path: '.env.local' });
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 
+// ── Utilitaire de pause (rythme sans presse) ───────────────────
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
 // ── 1. Initialisation ──────────────────────────────────────────
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -90,8 +93,8 @@ async function getRecentScoresForSport(sportKey) {
   }
 }
 
-// Analyse des 5 derniers matchs d'une équipe
-async function getTeamForm(teamName, sportKey, isHome) {
+// ── Analyse approfondie de la dynamique des équipes ────────────
+async function analyserDynamiqueEquipe(teamName, sportKey, estDomicile) {
   const matches = await getRecentScoresForSport(sportKey);
   const teamMatches = matches.filter(m => {
     const homeMatch = m.home_team && (m.home_team.includes(teamName) || teamName.includes(m.home_team));
@@ -101,7 +104,7 @@ async function getTeamForm(teamName, sportKey, isHome) {
 
   // Derniers 5 matchs
   const last5 = teamMatches.slice(-5);
-  if (last5.length < 2) return { wins: 0, losses: 0, draws: 0, streak: 0, homeForm: null, awayForm: null };
+  if (last5.length < 2) return { wins: 0, losses: 0, draws: 0, streak: 0, ratioDomicile: null, ratioExterieur: null, winRateDomicile: 0, winRateExterieur: 0 };
 
   let wins = 0, losses = 0, draws = 0, streak = 0;
   for (const m of last5) {
@@ -115,7 +118,7 @@ async function getTeamForm(teamName, sportKey, isHome) {
     else { draws++; streak = 0; }
   }
 
-  // Forme spécifique domicile/extérieur
+  // Analyse spécifique DOMICILE (matchs où l'équipe recevait)
   const homeMatches = last5.filter(m => {
     const homeTeam = m.home_team;
     return homeTeam && (homeTeam.includes(teamName) || teamName.includes(homeTeam));
@@ -131,11 +134,43 @@ async function getTeamForm(teamName, sportKey, isHome) {
     return s1 < s2;
   }).length;
 
+  // Analyse spécifique EXTERIEUR (matchs où l'équipe se déplaçait)
+  const awayMatches = last5.filter(m => {
+    const awayTeam = m.away_team;
+    return awayTeam && (awayTeam.includes(teamName) || teamName.includes(awayTeam));
+  });
+  const awayWins = awayMatches.filter(m => {
+    const s1 = parseInt(m.scores[0]?.score) || 0;
+    const s2 = parseInt(m.scores[1]?.score) || 0;
+    return s2 > s1; // away team = scores[1]
+  }).length;
+  const awayLosses = awayMatches.filter(m => {
+    const s1 = parseInt(m.scores[0]?.score) || 0;
+    const s2 = parseInt(m.scores[1]?.score) || 0;
+    return s2 < s1;
+  }).length;
+
+  const winRateDomicile = homeMatches.length >= 2 ? (homeWins / homeMatches.length) * 100 : 0;
+  const winRateExterieur = awayMatches.length >= 2 ? (awayWins / awayMatches.length) * 100 : 0;
+
+  console.log(`   📊 ${teamName} : ${wins}V/${losses}D (${homeWins}V/${homeLosses}D à domicile, ${awayWins}V/${awayLosses}D à l'extérieur) - Série: ${streak}`);
+
   return {
     wins, losses, draws, streak,
-    homeForm: homeMatches.length >= 2 ? { played: homeMatches.length, wins: homeWins, losses: homeLosses } : null,
-    awayForm: null // simplifié
+    ratioDomicile: homeMatches.length >= 2 ? `${homeWins}/${homeMatches.length}` : null,
+    ratioExterieur: awayMatches.length >= 2 ? `${awayWins}/${awayMatches.length}` : null,
+    winRateDomicile,
+    winRateExterieur,
+    aPerduADomicile: homeLosses > 0,
+    invaincuDomicile: homeMatches.length >= 2 && homeLosses === 0,
+    nbMatchsDomicile: homeMatches.length,
+    nbMatchsExterieur: awayMatches.length
   };
+}
+
+// Conserver l'ancien nom pour compatibilité (délègue à la nouvelle fonction)
+async function getTeamForm(teamName, sportKey, isHome) {
+  return analyserDynamiqueEquipe(teamName, sportKey, isHome);
 }
 
 // ── 5. Analyse Value Bet ──────────────────────────────────────
@@ -168,9 +203,8 @@ async function calculerIndiceConfiance(match, sportGroup, homeForm, awayForm, bo
   let score = 70; // Base
   let reasons = [];
 
-  // ── A. Analyse de forme ──
+  // ── A. Analyse de forme approfondie ──
   if (homeForm && awayForm) {
-    // Favori à domicile ?
     const homeStreak = homeForm.streak || 0;
     const awayStreak = awayForm.streak || 0;
 
@@ -178,8 +212,26 @@ async function calculerIndiceConfiance(match, sportGroup, homeForm, awayForm, bo
     if (homeStreak >= 2) { score += 8; reasons.push("🏠 Domicile en bonne dynamique"); }
     if (awayStreak <= -2) { score += 5; reasons.push("🎯 Extérieur en crise"); }
 
+    // --- Analyse ratio DOMICILE vs EXTERIEUR ---
+    // L'équipe à domicile : regarder son winRate à domicile
+    if (homeForm.winRateDomicile >= 60) {
+      score += 12;
+      reasons.push(`🏠 ${match.home_team} solide à domicile (${homeForm.winRateDomicile.toFixed(0)}% victoires)`);
+    } else if (homeForm.winRateDomicile <= 30 && homeForm.nbMatchsDomicile >= 2) {
+      score -= 20;
+      reasons.push(`⚠️ ${match.home_team} faible à domicile (${homeForm.winRateDomicile.toFixed(0)}% victoires)`);
+    }
+
+    // L'équipe à l'extérieur : regarder son winRate à l'extérieur
+    if (awayForm.winRateExterieur <= 25 && awayForm.nbMatchsExterieur >= 2) {
+      score += 8;
+      reasons.push(`🎯 ${match.away_team} médiocre à l'extérieur (${awayForm.winRateExterieur.toFixed(0)}% victoires)`);
+    } else if (awayForm.winRateExterieur >= 60 && awayForm.nbMatchsExterieur >= 2) {
+      score -= 10;
+      reasons.push(`⚠️ ${match.away_team} performant à l'extérieur`);
+    }
+
     // Filtre de validateur : favori à l'extérieur face à une équipe solide à domicile
-    // On détecte le favori via les cotes H2H
     const h2hMarket = bookmakers?.[0]?.markets?.find(m => m.key === 'h2h');
     if (h2hMarket && h2hMarket.outcomes.length >= 2) {
       const homeOutcome = h2hMarket.outcomes.find(o => o.name === match.home_team);
@@ -187,10 +239,17 @@ async function calculerIndiceConfiance(match, sportGroup, homeForm, awayForm, bo
       if (homeOutcome && awayOutcome) {
         const favoriteIsHome = homeOutcome.price < awayOutcome.price;
         // Si le favori joue à l'extérieur
-        if (!favoriteIsHome && homeForm.wins >= 2 && homeForm.losses === 0) {
+        if (!favoriteIsHome) {
           // Filtre strict : rejeter si favori extérieur face à équipe invaincue à domicile
-          score -= 40;
-          reasons.push("❌ FAVORI EXTERIEUR face à une équipe invaincue à domicile");
+          if (homeForm.invaincuDomicile && homeForm.nbMatchsDomicile >= 2) {
+            score -= 40;
+            reasons.push("❌ FAVORI EXTERIEUR face à une équipe invaincue à domicile");
+          }
+          // Aussi pénaliser si l'équipe à domicile a un bon winRate
+          if (homeForm.winRateDomicile >= 50 && homeForm.nbMatchsDomicile >= 2) {
+            score -= 15;
+            reasons.push("⚠️ Favori extérieur face à un domicile solide");
+          }
         }
         if (favoriteIsHome && homeForm.wins >= 2) {
           score += 10;
@@ -201,7 +260,6 @@ async function calculerIndiceConfiance(match, sportGroup, homeForm, awayForm, bo
   }
 
   // ── B. Analyse Value Bet ──
-  // Pour chaque marché, on regarde si un bookmaker propose une cote anormalement haute
   let valueDetected = false;
   let totalPremium = 0;
   let valueCount = 0;
@@ -236,9 +294,13 @@ async function extractPredictions(matches, sportGroup, sportKey) {
     const { id, sport_title, home_team, away_team, commence_time, bookmakers } = match;
     if (!bookmakers || bookmakers.length === 0) continue;
 
-    // Récupérer la forme des équipes
-    const homeForm = await getTeamForm(home_team, sportKey, true);
-    const awayForm = await getTeamForm(away_team, sportKey, false);
+    // Pause de 2 secondes entre chaque match (rythme sans presse)
+    console.log(`   ⏳ Pause 2s avant analyse de ${home_team} vs ${away_team}...`);
+    await delay(2000);
+
+    // Récupérer la forme des équipes via l'analyse approfondie
+    const homeForm = await analyserDynamiqueEquipe(home_team, sportKey, true);
+    const awayForm = await analyserDynamiqueEquipe(away_team, sportKey, false);
 
     // Calculer l'indice de confiance global
     const confiance = await calculerIndiceConfiance(match, sportGroup, homeForm, awayForm, bookmakers);
@@ -248,7 +310,7 @@ async function extractPredictions(matches, sportGroup, sportKey) {
     }
 
     const strategy = SPORT_STRATEGIES[sportGroup] || { preferredMarkets: ['h2h', 'totals', 'spreads', 'double_chance', 'btts'], oddsRange: [1.20, 1.80] };
-    const usedBookmaker = bookmakers[0]; // Bookmaker principal
+    const usedBookmaker = bookmakers[0];
 
     for (const market of usedBookmaker.markets) {
       // --- FOOTBALL : Double Chance ou +1.5 buts ---
@@ -269,7 +331,6 @@ async function extractPredictions(matches, sportGroup, sportKey) {
         }
         if (market.key === 'totals') {
           for (const outcome of market.outcomes) {
-            // Privilégie "Plus de 1.5" ou "Plus de 2.5"
             if (outcome.name === 'Over' && (outcome.point === 1.5 || outcome.point === 2.5)) {
               if (outcome.price >= 1.20 && outcome.price <= 1.60) {
                 predictions.push({
@@ -287,7 +348,6 @@ async function extractPredictions(matches, sportGroup, sportKey) {
         if (market.key === 'btts') {
           for (const outcome of market.outcomes) {
             if (outcome.price >= 1.50 && outcome.price <= 1.80 && outcome.name === 'No') {
-              // "Chaque équipe marque : Non" est souvent plus sûr
               predictions.push({
                 match_id: id, sport: sport_title, sport_group: sportGroup,
                 home_team, away_team, commence_at: commence_time,
@@ -306,7 +366,6 @@ async function extractPredictions(matches, sportGroup, sportKey) {
         if (market.key === 'spreads') {
           for (const outcome of market.outcomes) {
             const point = outcome.point;
-            // Favori à domicile (point négatif = favori)
             if (point < 0 && outcome.price >= 1.30 && outcome.price <= 1.75) {
               predictions.push({
                 match_id: id, sport: sport_title, sport_group: sportGroup,
@@ -319,11 +378,9 @@ async function extractPredictions(matches, sportGroup, sportKey) {
             }
           }
         }
-        // Fallback H2H si pas de spreads
         if (market.key === 'h2h' && !usedBookmaker.markets.some(m => m.key === 'spreads')) {
           for (const outcome of market.outcomes) {
             if (outcome.price >= 1.25 && outcome.price <= 1.55) {
-              // Vérifier que c'est un favori à domicile
               if (outcome.name === home_team) {
                 predictions.push({
                   match_id: id, sport: sport_title, sport_group: sportGroup,
@@ -339,11 +396,12 @@ async function extractPredictions(matches, sportGroup, sportKey) {
         }
       }
 
-      // --- NHL (HOCKEY SUR GLACE) ---
+      // --- NHL (HOCKEY SUR GLACE) : UNIQUEMENT Moneyline ou +4.5 buts ---
       else if (sportGroup === 'Ice Hockey') {
+        // Marché Moneyline (h2h inclut les prolongations dans Odds API)
         if (market.key === 'h2h') {
           for (const outcome of market.outcomes) {
-            // Moneyline inclut les prolongations (c'est le cas par défaut dans Odds API)
+            // UNIQUEMENT favori à domicile en Moneyline
             if (outcome.price >= 1.35 && outcome.price <= 1.65 && outcome.name === home_team) {
               predictions.push({
                 match_id: id, sport: sport_title, sport_group: sportGroup,
@@ -356,7 +414,7 @@ async function extractPredictions(matches, sportGroup, sportKey) {
             }
           }
         }
-        // Alternative : Plus de 4.5 buts si les deux équipes marquent beaucoup
+        // Alternative : Plus de 4.5 buts (pas de victoire sèche)
         if (market.key === 'totals') {
           for (const outcome of market.outcomes) {
             if (outcome.name === 'Over' && outcome.point >= 4.5 && outcome.point <= 5.5) {

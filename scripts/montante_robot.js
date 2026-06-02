@@ -2,6 +2,9 @@ require('dotenv').config({ path: '.env.local' });
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 
+// ── Utilitaire de pause ────────────────────────────────────────
+const delay = ms => new Promise(res => setTimeout(res, ms));
+
 // ── Configuration ──────────────────────────────────────────────
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -223,7 +226,24 @@ async function main() {
 
     console.log(`\n🎯 Résultat du pronostic : ${resultat}\n`);
 
-    // 5. Mettre à jour le statut de la ligne actuelle AVANT d'insérer la nouvelle
+    // 5. Pause de sécurité de 5 secondes avant l'UPDATE
+    console.log(`⏳ Pause 5s avant mise à jour...`);
+    await delay(5000);
+
+    // 6. Double vérification : s'assurer que la ligne est toujours EN_COURS
+    const { data: verif } = await supabase
+        .from("montante_du_jour")
+        .select("statut")
+        .eq("id", derniere.id)
+        .single();
+
+    if (!verif || verif.statut !== "EN_COURS") {
+        console.log(`⚠️ Double vérification : la ligne #${derniere.id} a déjà été traitée (statut: ${verif?.statut}). Annulation.`);
+        return;
+    }
+    console.log(`✅ Double vérification OK - Ligne #${derniere.id} toujours EN_COURS`);
+
+    // 7. Mettre à jour le statut de la ligne actuelle AVANT d'insérer la nouvelle
     const { error: updateError } = await supabase
         .from("montante_du_jour")
         .update({ statut: resultat })
@@ -235,7 +255,7 @@ async function main() {
     }
     console.log(`✅ Statut de la ligne #${derniere.id} mis à jour -> ${resultat}`);
 
-    // 6. Calculer la suite
+    // 8. Calculer la suite
     const gainPotentiel = Math.round(derniere.mise_actuelle * COTE_CIBLE);
 
     if (resultat === "GAGNE") {
