@@ -22,6 +22,9 @@ jobs:
       - name: "📦 Installer les dépendances"
         run: npm ci
 
+      - name: "🔌 Installer WebSocket"
+        run: npm install ws
+
       - name: "🤖 Exécuter le robot montante"
         run: node scripts/montante_robot.js
         env:
