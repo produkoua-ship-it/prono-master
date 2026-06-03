@@ -1,11 +1,6 @@
-// ── Polyfill WebSocket pour Node.js 20 (requis par @supabase/supabase-js) ──
-if (typeof globalThis.WebSocket === 'undefined') {
-  const { WebSocket } = require('ws');
-  globalThis.WebSocket = WebSocket;
-}
-
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
+const ws = require('ws');
 const { requireEnv } = require('./envHelper');
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -15,8 +10,13 @@ const ODDS_API_KEY = requireEnv('ODDS_API_KEY');
 console.log("🔍 Vérification des variables : URL =", !!supabaseUrl, "| KEY =", !!supabaseKey, "| ODDS =", !!ODDS_API_KEY);
 
 const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: { persistSession: false },
-  realtime: { transport: require('ws') }
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false
+  },
+  realtime: {
+    transport: ws
+  }
 });
 
 // Parse result logic based on market and prediction text

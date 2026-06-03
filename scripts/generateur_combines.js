@@ -1,11 +1,6 @@
-// ── Polyfill WebSocket pour Node.js 20 (requis par @supabase/supabase-js) ──
-if (typeof globalThis.WebSocket === 'undefined') {
-  const { WebSocket } = require('ws');
-  globalThis.WebSocket = WebSocket;
-}
-
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
+const ws = require('ws');
 
 // ── Utilitaire de pause (rythme sans presse) ───────────────────
 const delay = ms => new Promise(res => setTimeout(res, ms));
@@ -22,8 +17,13 @@ if (!supabaseUrl || !supabaseKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: { persistSession: false },
-  realtime: { transport: require('ws') }
+  auth: {
+    persistSession: false,
+    autoRefreshToken: false
+  },
+  realtime: {
+    transport: ws
+  }
 });
 const { requireEnv } = require('./envHelper');
 const ODDS_API_KEY = requireEnv('ODDS_API_KEY');
