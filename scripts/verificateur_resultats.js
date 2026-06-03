@@ -1,3 +1,9 @@
+// ── Polyfill WebSocket pour Node.js 20 (requis par @supabase/supabase-js) ──
+if (typeof globalThis.WebSocket === 'undefined') {
+  const { WebSocket } = require('ws');
+  globalThis.WebSocket = WebSocket;
+}
+
 const axios = require('axios');
 const { createClient } = require('@supabase/supabase-js');
 const { requireEnv } = require('./envHelper');
