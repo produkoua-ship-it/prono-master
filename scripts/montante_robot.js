@@ -15,6 +15,8 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const ODDS_API_KEY = process.env.ODDS_API_KEY;
 
+console.log("🔍 Vérification des variables : URL =", !!supabaseUrl, "| KEY =", !!supabaseKey, "| ODDS =", !!ODDS_API_KEY);
+
 if (!supabaseUrl || !supabaseKey) {
     console.error("❌ Variables d'environnement Supabase manquantes.");
     process.exit(1);
@@ -24,7 +26,10 @@ if (!ODDS_API_KEY) {
     process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey, {
+    auth: { persistSession: false },
+    realtime: { transport: require('ws') }
+});
 
 const MISE_DEPART = 1000;
 const COTE_CIBLE = 1.50;

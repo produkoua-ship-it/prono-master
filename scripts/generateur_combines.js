@@ -14,12 +14,17 @@ const delay = ms => new Promise(res => setTimeout(res, ms));
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
+console.log("🔍 Vérification des variables : URL =", !!supabaseUrl, "| KEY =", !!supabaseKey);
+
 if (!supabaseUrl || !supabaseKey) {
-  console.error("Erreur : Les variables d'environnement Supabase sont manquantes dans .env.local");
+  console.error("Erreur : Les variables d'environnement Supabase sont manquantes.");
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: { persistSession: false },
+  realtime: { transport: require('ws') }
+});
 const { requireEnv } = require('./envHelper');
 const ODDS_API_KEY = requireEnv('ODDS_API_KEY');
 
