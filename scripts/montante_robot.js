@@ -199,7 +199,16 @@ async function initMontanteDepuisCombinés() {
         return diff < bestDiff ? m : best;
     }, matchsDispos[0]);
 
-    console.log(`   Match sélectionné : ${meilleurMatch.home_team} vs ${meilleurMatch.away_team} (@${meilleurMatch.cote})`);
+    console.log(`   Match sélectionné : ${meilleurMatch.home_team} vs ${meilleurMatch.away_team} (@${meilleurMatch.cote}) — ${meilleurMatch.sport || "Sport inconnu"}`);
+
+    const matchData = {
+        home_team: meilleurMatch.home_team,
+        away_team: meilleurMatch.away_team,
+        prediction: meilleurMatch.prediction,
+        cote: meilleurMatch.cote,
+        commence_at: meilleurMatch.commence_at,
+        sport: meilleurMatch.sport || null,
+    };
 
     // Vérifier s'il existe déjà une ligne EN_COURS pour ce cycle
     const { data: existante } = await supabase
@@ -212,15 +221,7 @@ async function initMontanteDepuisCombinés() {
         console.log("⚠️  Une ligne EN_COURS existe déjà. On met à jour ses matchs plutôt que d'en créer une nouvelle.");
         const { error: updateErr } = await supabase
             .from("montante_du_jour")
-            .update({
-                matchs: [{
-                    home_team: meilleurMatch.home_team,
-                    away_team: meilleurMatch.away_team,
-                    prediction: meilleurMatch.prediction,
-                    cote: meilleurMatch.cote,
-                    commence_at: meilleurMatch.commence_at,
-                }]
-            })
+            .update({ matchs: [matchData] })
             .eq("id", existante[0].id);
         if (updateErr) {
             console.error("❌ Erreur mise à jour matchs :", updateErr.message);
@@ -238,13 +239,7 @@ async function initMontanteDepuisCombinés() {
             mise_actuelle: MISE_DEPART,
             cote_cible: COTE_CIBLE,
             statut: "EN_COURS",
-            matchs: [{
-                home_team: meilleurMatch.home_team,
-                away_team: meilleurMatch.away_team,
-                prediction: meilleurMatch.prediction,
-                cote: meilleurMatch.cote,
-                commence_at: meilleurMatch.commence_at,
-            }],
+            matchs: [matchData],
         }]);
 
     if (insertErr) {

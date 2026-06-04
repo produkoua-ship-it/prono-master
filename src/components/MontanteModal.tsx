@@ -9,6 +9,7 @@ interface MontanteMatch {
     prediction: string;
     cote: number;
     commence_at?: string;
+    sport?: string; // Nom du championnat/league
 }
 
 interface MontanteRow {
@@ -158,10 +159,10 @@ export default function MontanteModal({ isOpen, onClose }: MontanteModalProps) {
                         {/* Statut */}
                         <div className="mb-4">
                             <span className={`inline-block px-3 py-1 rounded-full text-xs font-black uppercase ${displayMontante.statut === "GAGNE"
-                                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                    : displayMontante.statut === "PERDU"
-                                        ? "bg-red-500/20 text-red-400 border border-red-500/30"
-                                        : "bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                : displayMontante.statut === "PERDU"
+                                    ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                                    : "bg-orange-500/20 text-orange-400 border border-orange-500/30"
                                 }`}>
                                 {displayMontante.statut === "EN_COURS" ? "⏳ En cours" : displayMontante.statut === "GAGNE" ? "✅ Gagné" : "❌ Perdu"}
                             </span>
@@ -183,7 +184,7 @@ export default function MontanteModal({ isOpen, onClose }: MontanteModalProps) {
                         <div className="bg-white/5 rounded-2xl p-4 border border-white/10 mb-5">
                             {match ? (
                                 <>
-                                    <p className="text-[10px] text-orange-400/80 uppercase tracking-widest font-bold mb-2">🤖 Prono du Robot</p>
+                                    <p className="text-[10px] text-orange-400/80 uppercase tracking-widest font-bold mb-2">{match.sport ? `🏆 ${match.sport}` : "🏆 Prono du Jour"}</p>
                                     <p className="text-base font-black text-white truncate">
                                         {match.home_team} <span className="text-white/40 font-normal text-xs">vs</span> {match.away_team}
                                     </p>
@@ -235,12 +236,12 @@ export default function MontanteModal({ isOpen, onClose }: MontanteModalProps) {
                                             <div
                                                 key={row.id}
                                                 className={`flex items-center gap-3 p-3 rounded-xl border ${isCurrent
-                                                        ? "bg-orange-500/10 border-orange-500/30"
-                                                        : isWin
-                                                            ? "bg-emerald-500/10 border-emerald-500/20"
-                                                            : isLose
-                                                                ? "bg-red-500/10 border-red-500/20"
-                                                                : "bg-white/5 border-white/10"
+                                                    ? "bg-orange-500/10 border-orange-500/30"
+                                                    : isWin
+                                                        ? "bg-emerald-500/10 border-emerald-500/20"
+                                                        : isLose
+                                                            ? "bg-red-500/10 border-red-500/20"
+                                                            : "bg-white/5 border-white/10"
                                                     }`}
                                             >
                                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm shrink-0 ${isWin ? "bg-emerald-500/20 text-emerald-400" : isLose ? "bg-red-500/20 text-red-400" : "bg-white/10 text-white/40"
