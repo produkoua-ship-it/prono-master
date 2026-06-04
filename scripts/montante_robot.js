@@ -172,8 +172,111 @@ function verifierPronostic(match, homeScore, awayScore) {
 
 // ── Main ───────────────────────────────────────────────────────
 
+/**
+ * Sélectionne un match disponible dans les combinés et crée une nouvelle ligne montante
+ */
+async function initMontanteDepuisCombinés() {
+    console.log("\n🔍 Aucune montante active — tentative de création via les combinés...");
+
+    // Chercher des matchs à venir dans matchs_du_combine
+    const maintenant = new Date().toISOString();
+    const { data: matchsDispos, error } = await supabase
+        .from("matchs_du_combine")
+        .select("match_id, combine_id, home_team, away_team, prediction, market, cote, commence_at, sport")
+        .gt("commence_at", maintenant)
+        .order("cote", { ascending: true })
+        .limit(10);
+
+    if (error || !matchsDispos || matchsDispos.length === 0) {
+        console.log("⚠️  Aucun match disponible dans les combinés pour initialiser la montante.");
+        return false;
+    }
+
+    // Prendre le match avec la cote la plus proche de COTE_CIBLE (1.50)
+    const meilleurMatch = matchsDispos.reduce((best, m) => {
+        const diff = Math.abs(m.cote - COTE_CIBLE);
+        const bestDiff = Math.abs(best.cote - COTE_CIBLE);
+        return diff < bestDiff ? m : best;
+    }, matchsDispos[0]);
+
+    console.log(`   Match sélectionné : ${meilleurMatch.home_team} vs ${meilleurMatch.away_team} (@${meilleurMatch.cote})`);
+
+    // Vérifier s'il existe déjà une ligne EN_COURS pour ce cycle
+    const { data: existante } = await supabase
+        .from("montante_du_jour")
+        .select("id")
+        .eq("statut", "EN_COURS")
+        .limit(1);
+
+    if (existante && existante.length > 0) {
+        console.log("⚠️  Une ligne EN_COURS existe déjà. On met à jour ses matchs plutôt que d'en créer une nouvelle.");
+        const { error: updateErr } = await supabase
+            .from("montante_du_jour")
+            .update({
+                matchs: [{
+                    home_team: meilleurMatch.home_team,
+                    away_team: meilleurMatch.away_team,
+                    prediction: meilleurMatch.prediction,
+                    cote: meilleurMatch.cote,
+                    commence_at: meilleurMatch.commence_at,
+                }]
+            })
+            .eq("id", existante[0].id);
+        if (updateErr) {
+            console.error("❌ Erreur mise à jour matchs :", updateErr.message);
+            return false;
+        }
+        console.log(`✅ Match associé à la montante #${existante[0].id}`);
+        return true;
+    }
+
+    // Créer une nouvelle ligne
+    const { error: insertErr } = await supabase
+        .from("montante_du_jour")
+        .insert([{
+            jour_actuel: 1,
+            mise_actuelle: MISE_DEPART,
+            cote_cible: COTE_CIBLE,
+            statut: "EN_COURS",
+            matchs: [{
+                home_team: meilleurMatch.home_team,
+                away_team: meilleurMatch.away_team,
+                prediction: meilleurMatch.prediction,
+                cote: meilleurMatch.cote,
+                commence_at: meilleurMatch.commence_at,
+            }],
+        }]);
+
+    if (insertErr) {
+        console.error("❌ Erreur création montante :", insertErr.message);
+        return false;
+    }
+
+    console.log("✅ Nouvelle montante créée avec un match !");
+    return true;
+}
+
 async function main() {
     console.log("🤖 === Robot Montante - Vérification automatique ===\n");
+
+    // 0. Si aucun match n'est associé, tenter d'en piocher un depuis les combinés
+    const { data: checkMatchs } = await supabase
+        .from("montante_du_jour")
+        .select("matchs")
+        .eq("statut", "EN_COURS")
+        .order("id", { ascending: false })
+        .limit(1)
+        .single();
+
+    const matchsVides = !checkMatchs || !checkMatchs.matchs || checkMatchs.matchs.length === 0;
+
+    if (matchsVides) {
+        const initOk = await initMontanteDepuisCombinés();
+        if (!initOk) {
+            console.log("ℹ️  Impossible d'initialiser la montante. Fin.");
+            return;
+        }
+    }
 
     // 1. Récupérer la dernière ligne EN_COURS
     const { data: derniere, error: fetchError } = await supabase
