@@ -16,6 +16,16 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "PronoMaster - L'IA au service de vos pronostics",
   description: "PronoMaster, l'application ultime de pronostics sportifs alimentée par l'Intelligence Artificielle.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/img/favicon.png",
+    apple: "/img/icon-192.png",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "PronoMaster",
+  },
 };
 
 export default function RootLayout({
