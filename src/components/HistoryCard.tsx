@@ -30,9 +30,10 @@ function determineStatus(statut: string | null): "win" | "loss" | "unknown" {
 
 function formatDate(dateStr: string) {
     const d = new Date(dateStr);
-    const datePart = d.toLocaleDateString("fr-FR", { timeZone: "UTC", day: "2-digit", month: "short" });
-    const timePart = d.toLocaleTimeString("fr-FR", { timeZone: "UTC", hour: "2-digit", minute: "2-digit" });
-    return `${datePart} à ${timePart}`;
+    const dd = String(d.getUTCDate()).padStart(2, "0");
+    const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const yyyy = d.getUTCFullYear();
+    return `Fait le ${dd}/${mm}/${yyyy}`;
 }
 
 function formatDateShort(dateStr: string) {
@@ -182,10 +183,10 @@ export default function HistoryCard({ combine }: { combine: Combined }) {
                     <div className="relative w-full sm:max-w-lg bg-white rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-2xl max-h-[85vh] overflow-y-auto">
                         {/* Header Modal */}
                         <div className={`sticky top-0 z-10 p-4 flex items-center justify-between ${isWin
-                                ? "bg-gradient-to-r from-emerald-500 to-teal-500"
-                                : isLoss
-                                    ? "bg-gradient-to-r from-slate-600 to-slate-700"
-                                    : "bg-gradient-to-r from-[#FF2E93] to-[#712EFF]"
+                            ? "bg-gradient-to-r from-emerald-500 to-teal-500"
+                            : isLoss
+                                ? "bg-gradient-to-r from-slate-600 to-slate-700"
+                                : "bg-gradient-to-r from-[#FF2E93] to-[#712EFF]"
                             }`}>
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
@@ -236,10 +237,10 @@ export default function HistoryCard({ combine }: { combine: Combined }) {
                                     <div
                                         key={idx}
                                         className={`w-full p-4 rounded-2xl border ${matchGagne
-                                                ? "bg-emerald-50 border-emerald-200"
-                                                : matchPerdu
-                                                    ? "bg-red-50 border-red-200"
-                                                    : "bg-slate-50 border-slate-200"
+                                            ? "bg-emerald-50 border-emerald-200"
+                                            : matchPerdu
+                                                ? "bg-red-50 border-red-200"
+                                                : "bg-slate-50 border-slate-200"
                                             }`}
                                     >
                                         {/* Header match */}
@@ -287,10 +288,10 @@ export default function HistoryCard({ combine }: { combine: Combined }) {
                                                 </span>
                                             )}
                                             <span className={`text-xs font-black px-2 py-1 rounded-full ${matchGagne
-                                                    ? "bg-emerald-200 text-emerald-800"
-                                                    : matchPerdu
-                                                        ? "bg-red-200 text-red-800"
-                                                        : "bg-purple-200 text-purple-800"
+                                                ? "bg-emerald-200 text-emerald-800"
+                                                : matchPerdu
+                                                    ? "bg-red-200 text-red-800"
+                                                    : "bg-purple-200 text-purple-800"
                                                 }`}>
                                                 @ {match.cote.toFixed(2)}
                                             </span>

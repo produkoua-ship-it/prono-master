@@ -56,7 +56,7 @@ export default function BottomNav() {
 
     return (
         <>
-            <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-50 sm:hidden">
+            <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] z-50">
                 <div className="flex items-center justify-around h-16 px-2">
                     {navItems.map((item) => {
                         const active = isActive(item.href);
@@ -101,7 +101,7 @@ export default function BottomNav() {
             </nav>
 
             {/* Spacer pour éviter que le contenu soit caché sous la nav */}
-            <div className="h-16 sm:hidden" />
+            <div className="h-16" />
 
             {/* Modal Montante */}
             <MontanteModal isOpen={showMontanteModal} onClose={() => setShowMontanteModal(false)} />
