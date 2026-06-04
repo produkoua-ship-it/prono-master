@@ -61,10 +61,11 @@ export default async function Home() {
     matchs: c.matchs || [],
   }));
 
-  // Fetch unique matches for the banner slider
+  // Fetch unique matches for the banner slider — UNIQUEMENT matchs à venir
   const { data: allMatchs } = await supabase
     .from("matchs_du_combine")
     .select("id, sport, home_team, away_team, commence_at")
+    .gte("commence_at", new Date().toISOString())
     .not("commence_at", "is", null)
     .order("commence_at", { ascending: true })
     .limit(20);
