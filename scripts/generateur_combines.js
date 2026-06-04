@@ -723,12 +723,12 @@ const MARKET_TIERS = [
 
 async function fetchOddsForSport(sportKey) {
   const now = new Date();
-  const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+  const in24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
   const pad2 = (n) => String(n).padStart(2, '0');
   const formatDate = (d) =>
     `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}T${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}Z`;
   const commenceTimeFrom = formatDate(now);
-  const commenceTimeTo = formatDate(in48h);
+  const commenceTimeTo = formatDate(in24h);
 
   for (const markets of MARKET_TIERS) {
     let attempt = 0;

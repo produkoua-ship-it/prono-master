@@ -117,13 +117,9 @@ export default async function HistoriquePage() {
       statut: c.statut || null,
     }))
     .filter((c: Combined) => {
-      if (c.statut === "gagne" || c.statut === "perdu") return true;
-      if (c.matchs.length === 0) return false;
-
-      return c.matchs.every((m) => {
-        const t = new Date(m.commence_at).getTime();
-        return t < nowMs;
-      });
+      // Seuls les combinés avec un statut définitif (GAGNÉ ou PERDU) sont affichés.
+      // Les statuts "en_cours", "en_attente" ou null ne doivent jamais apparaître dans l'historique.
+      return c.statut === "gagne" || c.statut === "perdu";
     })
     .slice(0, 20);
 
