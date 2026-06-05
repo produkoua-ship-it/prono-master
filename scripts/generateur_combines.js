@@ -467,7 +467,7 @@ async function extractPredictions(matches, sportGroup, sportKey) {
 }
 
 // ── 8. Générateur de combinés intelligents ─────────────────────
-function generateCombinés(predictionsPool, count = 10) {
+function generateCombinés(predictionsPool, count = 10, globalUsedMatchIds = new Set()) {
   const combinés = [];
 
   if (predictionsPool.length < 2) {
@@ -504,19 +504,27 @@ function generateCombinés(predictionsPool, count = 10) {
     for (let i = 0; i < selectionCount; i++) {
       // À chaque itération, on pioche dans le pool trié (les meilleurs confiance en premier)
       // mais avec une préférence pour les sports variés
+      // On exclut aussi les matchs déjà utilisés dans des combinés précédents (globalUsedMatchIds)
       let availablePool;
       if (i === 0) {
-        // Premier choix : meilleur pronostic disponible
-        availablePool = sortedPool.filter(bet => !usedMatchIds.has(bet.match_id));
+        // Premier choix : meilleur pronostic disponible (jamais utilisé)
+        availablePool = sortedPool.filter(bet =>
+          !usedMatchIds.has(bet.match_id) &&
+          !globalUsedMatchIds.has(bet.match_id)
+        );
       } else {
         // Choix suivants : favoriser les sports différents
         availablePool = sortedPool.filter(bet =>
           !usedMatchIds.has(bet.match_id) &&
+          !globalUsedMatchIds.has(bet.match_id) &&
           !usedSports.has(bet.sport_group)
         );
         // Si aucun sport différent disponible, on autorise le même sport
         if (availablePool.length === 0) {
-          availablePool = sortedPool.filter(bet => !usedMatchIds.has(bet.match_id));
+          availablePool = sortedPool.filter(bet =>
+            !usedMatchIds.has(bet.match_id) &&
+            !globalUsedMatchIds.has(bet.match_id)
+          );
         }
       }
 
@@ -643,9 +651,21 @@ async function main() {
     return;
   }
 
-  // 3. Génération intelligente
-  const combinésGénérés = generateCombinés(allPredictions, neededCombines);
+  // 3. Génération intelligente avec anti-doublon global
+  const globalUsedMatchIds = new Set();
+  const combinésGénérés = generateCombinés(allPredictions, neededCombines, globalUsedMatchIds);
+
+  // Ajouter les matchs des combinés générés dans le Set global pour éviter les doublons lors de prochains cycles
+  for (const c of combinésGénérés) {
+    for (const m of c.matchs) {
+      globalUsedMatchIds.add(m.match_id);
+    }
+  }
+
   console.log(`\n=== Génération terminée. ${combinésGénérés.length}/${neededCombines} combinés créés (cote: 1.80-2.50). ===`);
+  if (globalUsedMatchIds.size > 0) {
+    console.log(`   ${globalUsedMatchIds.size} matchs uniques utilisés (aucun doublon entre combinés).`);
+  }
 
   if (combinésGénérés.length === 0) {
     console.log("Aucun combiné n'a pu être généré (pas assez de pronostics avec confiance suffisante).");

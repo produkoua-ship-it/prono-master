@@ -233,9 +233,13 @@ async function main() {
       let allWon = true;
       let anyLost = false;
 
+      // Dès qu'un match est perdu => combiné perdu immédiatement
       for (const m of combineMatches) {
         if (m.statut_match === 'perdu') {
           anyLost = true;
+          // Perte immédiate : on ne vérifie pas les autres matchs
+          allWon = false;
+          break;
         }
         if (m.statut_match !== 'gagne') {
           allWon = false;
@@ -243,8 +247,11 @@ async function main() {
       }
 
       let newStatus = null;
-      if (anyLost) newStatus = 'perdu';
-      else if (allWon) newStatus = 'gagne';
+      if (anyLost) {
+        newStatus = 'perdu';
+      } else if (allWon) {
+        newStatus = 'gagne';
+      }
 
       if (newStatus && newStatus !== combine.statut) {
         await supabase
