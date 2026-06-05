@@ -35,6 +35,22 @@ const MISE_DEPART = 1000;
 const COTE_CIBLE = 1.50;
 const TOTAL_JOURS = 17;
 const DELAI_APRES_MATCH_MS = 2 * 60 * 60 * 1000; // 2h après le coup d'envoi
+const MAX_RETRY = 3; // Nombre max de tentatives avant d'alerter
+const RETRY_DELAY_MS = 15 * 60 * 1000; // 15 minutes entre chaque tentative
+
+// ── Système de logs Supabase ───────────────────────────────────
+async function logToSupabase(level, message, data = {}) {
+    try {
+        await supabase.from("logs_robot").insert([{
+            level, // 'info', 'warning', 'error'
+            message,
+            data,
+            created_at: new Date().toISOString(),
+        }]);
+    } catch (e) {
+        console.error("⚠️ Erreur écriture log Supabase :", e.message);
+    }
+}
 
 // ── Helpers ────────────────────────────────────────────────────
 
@@ -310,16 +326,58 @@ async function main() {
     console.log(`   Match : ${match.home_team} vs ${match.away_team}`);
     console.log(`   Sport : ${match.sport || match.sport_group || 'inconnu'}`);
 
-    const sportKey = await getSportKeyFromTitle(match.sport || match.sport_group || '');
-    if (!sportKey) {
-        console.log(`⚠️  Clé de sport introuvable pour "${match.sport}". Impossible de vérifier le score.`);
-        return;
+    let scoreResult = null;
+    let retryCount = 0;
+
+    while (!scoreResult && retryCount < MAX_RETRY) {
+        const sportKey = await getSportKeyFromTitle(match.sport || match.sport_group || '');
+        if (!sportKey) {
+            console.log(`⚠️  Clé de sport introuvable pour "${match.sport}". Impossible de vérifier le score.`);
+            await logToSupabase("warning", `Sport key not found: ${match.sport}`, { match_id: match.match_id });
+            return;
+        }
+
+        console.log(`   Clé API : ${sportKey} (tentative ${retryCount + 1}/${MAX_RETRY})`);
+        scoreResult = await fetchMatchScore(sportKey, match.match_id);
+
+        if (!scoreResult) {
+            retryCount++;
+            if (retryCount < MAX_RETRY) {
+                console.log(`   ⏳ Tentative ${retryCount}/${MAX_RETRY} échouée. Nouvel essai dans 15 min...`);
+                await logToSupabase("info", `Retry ${retryCount}/${MAX_RETRY} pour match ${match.home_team} vs ${match.away_team}`);
+                await delay(RETRY_DELAY_MS);
+            }
+        }
     }
 
-    console.log(`   Clé API : ${sportKey}`);
-    const scoreResult = await fetchMatchScore(sportKey, match.match_id);
     if (!scoreResult) {
-        console.log("⚠️  Score non disponible ou match non terminé selon l'API.");
+        // Après X tentatives : match considéré comme reporté/annulé → cote = 1.00, passage au jour suivant
+        console.log("⚠️  ⚠️ Match non trouvé après toutes les tentatives — considéré comme REPORTÉ/ANNULÉ.");
+        await logToSupabase("warning", `Match reporté/annulé après ${MAX_RETRY} tentatives : ${match.home_team} vs ${match.away_team}`, {
+            match_id: match.match_id,
+            statut_traite: "ANNULE_COTE_1.00"
+        });
+
+        // Mettre le statut à 1.00 pour ce match (reporté/annulé), et passer au jour suivant
+        await supabase
+            .from("montante_du_jour")
+            .update({ statut: "GAGNE_COTE_1" }) // Gain forcé à cote 1.0
+            .eq("id", derniere.id);
+
+        console.log(`✅ Match reporté — cote forcée à 1.00. Passage au jour suivant.`);
+
+        // Insérer le jour suivant avec le même montant (mise inchangée car cote = 1.0)
+        await supabase
+            .from("montante_du_jour")
+            .insert([{
+                jour_actuel: derniere.jour_actuel + 1,
+                mise_actuelle: derniere.mise_actuelle, // Mise inchangée
+                cote_cible: COTE_CIBLE,
+                statut: "EN_COURS",
+                matchs: null,
+            }]);
+
+        console.log(`📈 Passage au Jour ${derniere.jour_actuel + 1} (mise inchangée suite report)`);
         return;
     }
 
@@ -329,8 +387,15 @@ async function main() {
     const resultat = verifierPronostic(match, scoreResult.homeScore, scoreResult.awayScore);
     if (!resultat) {
         console.log("⚠️  Impossible de déterminer le résultat du pronostic (marché non supporté ou données manquantes).");
+        await logToSupabase("error", "Marché non supporté pour vérification", { market: match.market, match_id: match.match_id });
         return;
     }
+
+    await logToSupabase("info", `Résultat montante Jour ${derniere.jour_actuel}`, {
+        match: `${match.home_team} vs ${match.away_team}`,
+        resultat,
+        mise: derniere.mise_actuelle
+    });
 
     console.log(`\n🎯 Résultat du pronostic : ${resultat}\n`);
 

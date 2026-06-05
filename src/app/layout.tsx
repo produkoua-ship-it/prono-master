@@ -38,9 +38,16 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col overscroll-y-contain">
         <main className="flex-1">{children}</main>
         <BottomNav />
+        {/* Pull-to-refresh : bouton de synchronisation rapide avec Supabase */}
+        <div
+          id="pull-to-refresh-indicator"
+          className="fixed top-0 left-0 right-0 z-[60] bg-gradient-to-r from-[#FF2E93] to-[#712EFF] text-white text-center py-2 text-xs font-bold -translate-y-full transition-transform duration-300 opacity-0"
+        >
+          ↻ Synchronisation...
+        </div>
       </body>
     </html>
   );
