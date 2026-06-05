@@ -103,6 +103,37 @@ async function getRecentScoresForSport(sportKey) {
   }
 }
 
+// ── Analyse Loi de Poisson (moyenne de buts marqués/encaissés) ──
+function calculerPoissonScores(teamMatches, teamName) {
+  // Calcule la moyenne de buts marqués et encaissés sur les matchs disponibles
+  let butsMarques = 0, butsEncaisses = 0, nbMatchs = 0;
+  for (const m of teamMatches) {
+    const s1 = parseInt(m.scores[0]?.score) || 0;
+    const s2 = parseInt(m.scores[1]?.score) || 0;
+    const home = m.home_team && (m.home_team.includes(teamName) || teamName.includes(m.home_team));
+    butsMarques += home ? s1 : s2;
+    butsEncaisses += home ? s2 : s1;
+    nbMatchs++;
+  }
+  if (nbMatchs === 0) return { attaqueMoy: 1.0, defenseMoy: 1.0, nbMatchs: 0 };
+  return {
+    attaqueMoy: parseFloat((butsMarques / nbMatchs).toFixed(2)),
+    defenseMoy: parseFloat((butsEncaisses / nbMatchs).toFixed(2)),
+    nbMatchs
+  };
+}
+
+// Probabilité de victoire basée sur Poisson
+function poissonProba(moyButsEquipe, moyButsAdverse) {
+  // Formule simplifiée : compare les forces d'attaque/défense
+  const forceAtt = moyButsEquipe || 1.0;
+  const forceDef = moyButsAdverse || 1.0;
+  const expectedButs = (forceAtt + (1 / (forceDef || 0.1))) / 2;
+  // Probabilité que l'équipe marque plus que l'adversaire ~ Poisson(λ)
+  // Approximation : si expectedButs > 1.2, proba > 50%
+  return Math.min(0.95, Math.max(0.1, expectedButs / 2.5));
+}
+
 // ── Analyse approfondie de la dynamique des équipes ────────────
 async function analyserDynamiqueEquipe(teamName, sportKey, estDomicile) {
   const matches = await getRecentScoresForSport(sportKey);
@@ -115,6 +146,9 @@ async function analyserDynamiqueEquipe(teamName, sportKey, estDomicile) {
   // Derniers 5 matchs
   const last5 = teamMatches.slice(-5);
   if (last5.length < 2) return { wins: 0, losses: 0, draws: 0, streak: 0, ratioDomicile: null, ratioExterieur: null, winRateDomicile: 0, winRateExterieur: 0 };
+
+  // Analyse Poisson sur tous les matchs disponibles
+  const poisson = calculerPoissonScores(teamMatches, teamName);
 
   let wins = 0, losses = 0, draws = 0, streak = 0;
   for (const m of last5) {
@@ -213,17 +247,52 @@ async function calculerIndiceConfiance(match, sportGroup, homeForm, awayForm, bo
   let score = 70; // Base
   let reasons = [];
 
-  // ── A. Analyse de forme approfondie ──
+  // ── A. Analyse de forme approfondie (H2H 5 derniers matchs) ──
   if (homeForm && awayForm) {
     const homeStreak = homeForm.streak || 0;
     const awayStreak = awayForm.streak || 0;
+
+    // Règle stricte : favori avec plus de 2 défaites sur les 5 derniers matchs = rejeté
+    const h2hMarket = bookmakers?.[0]?.markets?.find(m => m.key === 'h2h');
+    if (h2hMarket && h2hMarket.outcomes.length >= 2) {
+      const homeOutcome = h2hMarket.outcomes.find(o => o.name === match.home_team);
+      const awayOutcome = h2hMarket.outcomes.find(o => o.name === match.away_team);
+      if (homeOutcome && awayOutcome) {
+        const favoriteIsHome = homeOutcome.price < awayOutcome.price;
+
+        if (favoriteIsHome) {
+          // Le favori est le domicile
+          if (homeForm.losses >= 3 && homeForm.nbMatchsDomicile >= 2) {
+            score -= 50;
+            reasons.push("❌ FAVORI DOMICILE a perdu 3+ de ses 5 derniers matchs");
+          }
+        } else {
+          // Le favori est l'extérieur
+          if (awayForm.losses >= 3 && awayForm.nbMatchsExterieur >= 2) {
+            score -= 50;
+            reasons.push("❌ FAVORI EXTERIEUR a perdu 3+ de ses 5 derniers matchs");
+          }
+        }
+
+        // Règle : équipe à domicile invaincue sur ses 3 derniers matchs = bonus
+        if (homeForm.invaincuDomicile && homeForm.nbMatchsDomicile >= 2) {
+          score += 15;
+          reasons.push("🏠 Domicile invaincu à domicile");
+        }
+
+        // Règle : adversaire à l'extérieur sur 3 défaites consécutives = bonus
+        if (awayStreak <= -3) {
+          score += 12;
+          reasons.push("🎯 Extérieur en pleine crise (3 défaites)");
+        }
+      }
+    }
 
     // Momentum
     if (homeStreak >= 2) { score += 8; reasons.push("🏠 Domicile en bonne dynamique"); }
     if (awayStreak <= -2) { score += 5; reasons.push("🎯 Extérieur en crise"); }
 
     // --- Analyse ratio DOMICILE vs EXTERIEUR ---
-    // L'équipe à domicile : regarder son winRate à domicile
     if (homeForm.winRateDomicile >= 60) {
       score += 12;
       reasons.push(`🏠 ${match.home_team} solide à domicile (${homeForm.winRateDomicile.toFixed(0)}% victoires)`);
@@ -232,7 +301,6 @@ async function calculerIndiceConfiance(match, sportGroup, homeForm, awayForm, bo
       reasons.push(`⚠️ ${match.home_team} faible à domicile (${homeForm.winRateDomicile.toFixed(0)}% victoires)`);
     }
 
-    // L'équipe à l'extérieur : regarder son winRate à l'extérieur
     if (awayForm.winRateExterieur <= 25 && awayForm.nbMatchsExterieur >= 2) {
       score += 8;
       reasons.push(`🎯 ${match.away_team} médiocre à l'extérieur (${awayForm.winRateExterieur.toFixed(0)}% victoires)`);
@@ -240,36 +308,39 @@ async function calculerIndiceConfiance(match, sportGroup, homeForm, awayForm, bo
       score -= 10;
       reasons.push(`⚠️ ${match.away_team} performant à l'extérieur`);
     }
+  }
 
-    // Filtre de validateur : favori à l'extérieur face à une équipe solide à domicile
-    const h2hMarket = bookmakers?.[0]?.markets?.find(m => m.key === 'h2h');
-    if (h2hMarket && h2hMarket.outcomes.length >= 2) {
-      const homeOutcome = h2hMarket.outcomes.find(o => o.name === match.home_team);
-      const awayOutcome = h2hMarket.outcomes.find(o => o.name === match.away_team);
-      if (homeOutcome && awayOutcome) {
-        const favoriteIsHome = homeOutcome.price < awayOutcome.price;
-        // Si le favori joue à l'extérieur
-        if (!favoriteIsHome) {
-          // Filtre strict : rejeter si favori extérieur face à équipe invaincue à domicile
-          if (homeForm.invaincuDomicile && homeForm.nbMatchsDomicile >= 2) {
-            score -= 40;
-            reasons.push("❌ FAVORI EXTERIEUR face à une équipe invaincue à domicile");
-          }
-          // Aussi pénaliser si l'équipe à domicile a un bon winRate
-          if (homeForm.winRateDomicile >= 50 && homeForm.nbMatchsDomicile >= 2) {
-            score -= 15;
-            reasons.push("⚠️ Favori extérieur face à un domicile solide");
-          }
-        }
-        if (favoriteIsHome && homeForm.wins >= 2) {
-          score += 10;
-          reasons.push("✅ Favori à domicile en forme");
-        }
+  // ── C. Analyse Loi de Poisson (croisement avec les cotes) ──
+  // Comparer la probabilité Poisson avec la probabilité implicite des cotes
+  const h2hMarketPoisson = bookmakers?.[0]?.markets?.find(m => m.key === 'h2h');
+  if (h2hMarketPoisson && h2hMarketPoisson.outcomes.length >= 2 && homeForm && awayForm) {
+    const homeOutcome = h2hMarketPoisson.outcomes.find(o => o.name === match.home_team);
+    const awayOutcome = h2hMarketPoisson.outcomes.find(o => o.name === match.away_team);
+    if (homeOutcome && awayOutcome) {
+      // Probabilité implicite de la cote du favori
+      const favoritePrice = Math.min(homeOutcome.price, awayOutcome.price);
+      const probaCote = 1 / favoritePrice;
+
+      // Probabilité Poisson du favori
+      const favoriteIsHome = homeOutcome.price < awayOutcome.price;
+      const poissonFavori = favoriteIsHome
+        ? poissonProba(homeForm.winRateDomicile / 100 || 0.5, awayForm.winRateExterieur / 100 || 0.5)
+        : poissonProba(awayForm.winRateExterieur / 100 || 0.5, homeForm.winRateDomicile / 100 || 0.5);
+
+      // Désaccord : si la cote suggère une proba > 65% mais Poisson < 40% → match piège
+      if (probaCote > 0.65 && poissonFavori < 0.40) {
+        score -= 40;
+        reasons.push(`⚠️ Désaccord Poisson/Cote : cote=${(probaCote * 100).toFixed(0)}% vs Poisson=${(poissonFavori * 100).toFixed(0)}%`);
+      }
+      // Accord : si les deux sont d'accord → bonus
+      if (probaCote > 0.55 && poissonFavori > 0.55) {
+        score += 10;
+        reasons.push(`✅ Poisson confirmé (${(poissonFavori * 100).toFixed(0)}%)`);
       }
     }
   }
 
-  // ── B. Analyse Value Bet ──
+  // ── D. Analyse Value Bet ──
   let valueDetected = false;
   let totalPremium = 0;
   let valueCount = 0;
