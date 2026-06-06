@@ -1,6 +1,7 @@
 import CombineCard from "@/components/CombineCard";
 import MatchBannerSlider from "@/components/MatchBannerSlider";
 import FlashBanner from "@/components/FlashBanner";
+import AdminTrigger from "@/components/AdminTrigger";
 import { supabase } from "@/lib/supabase";
 
 export const revalidate = 0;
@@ -99,7 +100,9 @@ export default async function Home() {
   return (
     <div className="flex flex-col items-center justify-start min-h-screen bg-[#F3F5F8] p-4 sm:p-8 text-[#1A1C24]">
       <div className="w-full max-w-6xl flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-0 mb-6 sm:mb-8">
-        <h1 className="text-base sm:text-xl md:text-2xl font-black text-slate-900 tracking-tight">PronoMaster - Vos combinés du jour</h1>
+        <h1 className="text-base sm:text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+          <AdminTrigger>PronoMaster - Vos combinés du jour</AdminTrigger>
+        </h1>
         <a
           href="/historique"
           className="hidden sm:inline-flex items-center gap-2 px-4 py-2 bg-white hover:bg-slate-50 text-slate-800 hover:text-slate-900 rounded-2xl border border-slate-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all duration-300 text-sm group whitespace-nowrap font-medium"
