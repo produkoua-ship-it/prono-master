@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
+// Mot de passe admin : utilise env var ou fallback "pronomaster2024"
 const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "pronomaster2024";
-const ADMIN_HASH = "b7e94b17b5a3e4f1e8c2d6a9f8b4c3d2e1f0a9b8c7d6e5f4a3b2c1d0e9f8a7b6";
 
 export default function AdminMontantePage() {
     const [authenticated, setAuthenticated] = useState(false);
@@ -28,17 +28,9 @@ export default function AdminMontantePage() {
     const [formMatchCote, setFormMatchCote] = useState("1.50");
     const [editingId, setEditingId] = useState<number | null>(null);
 
-    // Simple hash function for password check
-    async function hashPassword(pwd: string): Promise<string> {
-        const msgBuffer = new TextEncoder().encode(pwd);
-        const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
-    }
-
-    const handleLogin = async () => {
-        const hashed = await hashPassword(password);
-        if (hashed === ADMIN_HASH) {
+    const handleLogin = () => {
+        const pwd = password.trim().toLowerCase();
+        if (pwd === ADMIN_PASSWORD.trim().toLowerCase()) {
             setAuthenticated(true);
             setError("");
             loadData();
