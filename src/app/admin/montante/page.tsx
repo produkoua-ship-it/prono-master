@@ -15,6 +15,7 @@ export default function AdminMontantePage() {
     const [logs, setLogs] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState("");
+    const [generating, setGenerating] = useState(false);
 
     // Form state
     const [formJour, setFormJour] = useState(1);
@@ -126,6 +127,25 @@ export default function AdminMontantePage() {
         loadData();
     };
 
+    const handleManualGenerate = async () => {
+        setGenerating(true);
+        setMessage("🤖 Lancement de la génération...");
+        try {
+            const res = await fetch("/api/cron/generate", { method: "POST" });
+            const data = await res.json();
+            if (data.success) {
+                setMessage(`✅ ${data.message} (${data.combines_count} combinés créés)`);
+            } else {
+                setMessage(`❌ Erreur : ${data.error}`);
+            }
+        } catch (e: any) {
+            setMessage(`❌ Erreur réseau : ${e.message}`);
+        } finally {
+            setGenerating(false);
+            loadData();
+        }
+    };
+
     const resetForm = () => {
         setEditingId(null);
         setFormJour(1);
@@ -168,9 +188,18 @@ export default function AdminMontantePage() {
             <div className="max-w-4xl mx-auto">
                 <div className="flex items-center justify-between mb-8">
                     <h1 className="text-xl font-black">⚙️ Admin Montante</h1>
-                    <button onClick={loadData} className="text-xs text-slate-400 hover:text-white transition">
-                        🔄 Rafraîchir
-                    </button>
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleManualGenerate}
+                            disabled={generating}
+                            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold rounded-xl hover:opacity-90 transition disabled:opacity-50"
+                        >
+                            {generating ? "⏳ Génération..." : "🤖 Lancer la génération du jour"}
+                        </button>
+                        <button onClick={loadData} className="text-xs text-slate-400 hover:text-white transition">
+                            🔄 Rafraîchir
+                        </button>
+                    </div>
                 </div>
 
                 {message && (
@@ -269,9 +298,9 @@ export default function AdminMontantePage() {
                                         <td className="py-2 pr-2">{row.mise_actuelle.toLocaleString()} F</td>
                                         <td className="py-2 pr-2">
                                             <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${row.statut === "GAGNE" ? "bg-emerald-500/20 text-emerald-400" :
-                                                    row.statut === "PERDU" ? "bg-red-500/20 text-red-400" :
-                                                        row.statut === "EN_COURS" ? "bg-orange-500/20 text-orange-400" :
-                                                            "bg-slate-500/20 text-slate-400"
+                                                row.statut === "PERDU" ? "bg-red-500/20 text-red-400" :
+                                                    row.statut === "EN_COURS" ? "bg-orange-500/20 text-orange-400" :
+                                                        "bg-slate-500/20 text-slate-400"
                                                 }`}>{row.statut}</span>
                                         </td>
                                         <td className="py-2 pr-2 truncate max-w-[150px]">
@@ -296,8 +325,8 @@ export default function AdminMontantePage() {
                     <div className="space-y-2 max-h-64 overflow-y-auto">
                         {logs.map((log, i) => (
                             <div key={i} className={`text-xs p-2 rounded-lg ${log.level === "error" ? "bg-red-500/10 text-red-400" :
-                                    log.level === "warning" ? "bg-orange-500/10 text-orange-400" :
-                                        "bg-slate-700/50 text-slate-400"
+                                log.level === "warning" ? "bg-orange-500/10 text-orange-400" :
+                                    "bg-slate-700/50 text-slate-400"
                                 }`}>
                                 <span className="font-mono text-[9px] opacity-60">
                                     {new Date(log.created_at).toLocaleString("fr-FR")}
