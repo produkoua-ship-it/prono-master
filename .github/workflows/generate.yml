@@ -2,8 +2,8 @@ name: Generate Daily Combines
 
 on:
   schedule:
-    - cron: "0 3,12,18 * * *"  # 03h00, 12h00, 18h00 UTC
-  workflow_dispatch: # Allows manual trigger from GitHub UI
+    - cron: "0 3 * * *"  # Une seule fois par jour à 03h00 UTC
+  workflow_dispatch: # Déclenchement manuel uniquement (pas de push)
 
 jobs:
   generate:
